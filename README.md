@@ -1,0 +1,97 @@
+# Music Stage
+
+[Open Music Stage](https://immortaljeetsingh.github.io/music-stage/)
+
+A browser-based listening room: arrange virtual speakers and furniture, move a listener, and hear spatialized music through stereo headphones. Built with Canvas 2D and Web Audio; no application backend or build step.
+
+## Quick start
+
+1. Connect stereo headphones and start at low system volume.
+2. Pick an audio file in **Source**, then press **Play**. Files are decoded locally, not uploaded to GitHub.
+3. Drag speaker cabinets or the green listener in the room. Click empty floor to reposition the listener. Desktop WASD/arrow keys also move the listener.
+4. Select a speaker to change its volume, source channel, frequency band, height, or numerical X/Y position. Volume reaches 4×; master reaches 2.5×. More gain can distort.
+5. Add a bed, sofa, or wardrobe/almirah in **Room**. Drag its visible top or side with a mouse or finger. Numeric controls provide precise dimensions, coordinates, and estimated absorption. Objects remain inside the room.
+6. Adjust room reflections, absorption, softness, and late reverb. Furniture movement updates direct-path obstruction while playback continues.
+
+On mobile, drag directly on the room canvas; scroll using the surrounding page. Transport appears before the other control sections. Numeric controls remain an alternative to dragging.
+
+## Sound controls and balance
+
+- **L/R/M:** choose the recording's left channel, right channel, or both. M plays two virtual channels around the cabinet; it is not an automatic loudness matcher.
+- **Bands:** Full, Bass (300 Hz low-pass), Tweeter (2.5 kHz high-pass), Vocal (1.2 kHz band-pass), Bright (5 kHz high-pass). Subwoofers are low-passed at 120 Hz. These overlap; this is not a calibrated loudspeaker crossover.
+- **Width:** 1 preserves the channel feed, 0 adds mono crossfeed, and values above 1 add opposite-polarity crossfeed. Width changes can change loudness or cause cancellation.
+- **Balance / trims:** output adjustment, not automatic acoustic calibration. Start at Balance 0 and both trims 1.
+- **Test tone:** choose the same 80 Hz bass, 1 kHz mid, or 6 kHz treble tone and compare Test L with Test R. Quiet diagnostic tones bypass the room, EQ, and trims; they do not measure your hearing or headphones.
+- **Classic engine:** equal-power directional panning with manual distance attenuation.
+- **Precise imaging:** experimental parametric interaural delay/level and filter model; not a personalized HRTF. Leave off for the simpler default.
+- **Time-align rig:** changes direct-path delay for the virtual PA arrangement. Reflections retain separate delays.
+
+### If one side sounds bassier
+
+Use matching speaker gains/bands/heights and a centered listener first. Test with identical-channel or mono content, Balance 0, trims 1, and EQ bypassed. Asymmetric recordings, furniture, speaker positions, or head direction can legitimately produce unequal output. Do not compensate with large gain boosts before checking the configuration.
+
+The synthetic late reverb now uses one repeatable impulse response for both ears, removing random left/right spectral bias. Directional early reflections and speaker positioning remain stereo. Speakers start on one shared audio-clock timestamp. Switching bands resets filter resonance so a previous Vocal setting cannot leave one speaker with different filtering.
+
+The blue/green meters show post-EQ output levels, not separate bass/treble measurements. If matching diagnostic tones still differ, compare another headphone/output path and check OS balance, mono audio, other EQ/spatializers, and earbud fit. The app cannot diagnose hardware or hearing.
+
+## How it works
+
+Each speaker reads the mix or a cached stem:
+
+```text
+AudioBuffer source -> band filter -> channel split / width
+ -> speaker gain + mute -> air/sub low-pass
+    -> obstruction low-pass -> distance gain -> delay -> spatializer
+    -> first-order wall reflections and synthetic late reverb
+ -> master -> compressor -> balance -> per-ear trims
+ -> optional headphone EQ with preamp -> output ceiling -> stereo output/meters
+```
+
+Six mirrored image sources approximate first-order wall reflections. The late reverb uses a synthetic decaying-noise impulse. Softness and estimated furnishing area shorten/darken the tail. A segment/box intersection test detects blocked source-listener paths and applies a heuristic 1.8 kHz low-pass to direct sound, leaving the room send separate.
+
+The 3D-style view is an oblique projection drawn on a 2D canvas, not a scanned 3D room. Furniture picking follows the visible projected faces; dragging preserves the initial grab offset.
+
+## Headphones and tracking
+
+Optional AutoEq starting points are included for AirPods Pro 2 ANC, AirPods 4, AirPods 4 ANC, and EarPods. Sources: crinacle 711 for Pro 2 ANC; RTINGS B&K 5128 for AirPods 4; RTINGS HMS II.3 for EarPods. EarPods connector revision was not verified. Fit, mode, measurement rig, and personal preference affect results. EQ preamp attenuation is intentional headroom, not a fault.
+
+AirPods Pro 3 is explicitly **uncalibrated / bypass**: no numerical correction was verified for this project. The app does not detect your headphone model or control ANC, Adaptive EQ, Bluetooth codecs, or AirPods motion sensors.
+
+Head tracking uses the device running the page's orientation events, where supported and permitted on HTTPS. It does not relay a phone's sensors to a laptop. Manual Turn is available without sensors; experimental rendering has limitations, including non-personalized elevation cues.
+
+## Stems and external services
+
+`stems.html` loads Demucs/ONNX runtime and a large external model, then attempts separation in the browser. It can require substantial RAM and time, especially on mobile; model downloads and browser compatibility can fail. GitHub Pages does not supply cross-origin isolation headers for multithreaded WASM. Saved stems use IndexedDB on the current browser/origin and can be assigned per speaker.
+
+Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. Source file selection and room layout are not persisted across reloads; saved stems are the exception. No music files are bundled in this repository.
+
+## Run locally
+
+Open `index.html` directly for basic playback, or serve this folder using Python:
+
+```sh
+python -m http.server 8000
+```
+
+Open `http://localhost:8000`. No npm build is required. HTTPS or localhost may be required for device/browser features.
+
+## Regression checks
+
+Tests require Node.js, Playwright resolvable by Node, and installed Chrome. Install Playwright in a separate tooling directory if desired, and expose it through `NODE_PATH`. Set `BROWSER_PATH` to another compatible Chromium executable if Chrome is not available.
+
+```sh
+node --check test.cjs
+node --check test-ui.cjs
+node test.cjs
+node test-ui.cjs
+```
+
+`test.cjs` renders actual Web Audio through Chrome's OfflineAudioContext and checks centered bass/treble symmetry with reflections in both engines. `test-ui.cjs` checks mouse and real browser touch input for bed, sofa, and wardrobe dragging at mobile/desktop sizes, coordinate synchronization, bounds, and overflow. These tests do not verify perceived realism on a physical headset. No lint/typecheck command is configured.
+
+## Hosting and limitations
+
+GitHub Pages publishes the repository root from `main`. Push changes to trigger deployment; hard-refresh the live site after deployment and check the footer build label.
+
+This is an experimental simulation, **not exact acoustic replication**: no measured room response, room-mode solver, wave diffraction, personal HRTF, or calibrated loudspeaker directivity. Hard furnishings are not fully simulated as reflecting geometry. The output ceiling prevents excessive digital sample values but can introduce clipping distortion; it is not hearing protection.
+
+References: [AutoEq](https://github.com/jaakkopasanen/AutoEq), [ODEON room acoustics](https://odeon.dk/learn/articles/room-acoustics/), [Windows Bluetooth audio](https://learn.microsoft.com/en-us/windows-hardware/drivers/bluetooth/bluetooth-classic-audio).

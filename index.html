@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Stage Test (local)</title>
+<title>Music Stage — Spatial Audio Room</title>
 <style>
 *{box-sizing:border-box}
 body{font-family:system-ui;background:#0e1116;color:#e8ecf1;margin:0;padding:12px;max-width:1100px;margin-inline:auto}
@@ -64,13 +64,16 @@ input[type=range],input[type=checkbox]{accent-color:#83dfc5}#stat{color:#9cdcca;
 #time{font:12px ui-monospace,monospace;color:#a9c0cd}.meters{background:#080f17;border:1px solid #334651;border-radius:5px;height:30px;padding:3px 6px}
 footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:#8ca1b1;font-size:11px}
 @media(max-width:1000px){.layout{grid-template-columns:1fr}.col-stage{position:static}.stage{position:static}.col-ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.col-ctl .sec{margin:0}}
-@media(max-width:600px){body{padding:14px}.top{padding-bottom:20px}.top h3{font-size:27px}.badge{display:none}.layout{gap:14px}.row,.stage{padding:14px}.col-ctl{display:flex}.stagebar .hint{font-size:10px}.stage-foot{font-size:10px}button{min-height:44px}}
+@media(max-width:600px){body{padding:10px}.top{padding-bottom:16px}.top h3{font-size:24px}.badge{display:none}.layout{gap:12px}.row,.stage{padding:12px}.stagebar .hint{display:none}.stage-foot{font-size:10px;gap:8px}.stage-foot span:nth-child(n+3){display:none}button{min-height:44px;font-size:14px}#seek{flex:1 1 100%;height:34px}#time{font-size:11px}.meters{height:26px}.ctl{gap:8px}.ctl label{font-size:12px}input[type=range]{min-height:36px}#sel,#furniture{grid-template-columns:1fr}.col-ctl{display:flex}.col-ctl .sec{margin-bottom:12px}footer.row{font-size:10px}}
+
+#furniture>.ctl{padding:12px;margin-top:12px;border:1px solid #38515a;border-radius:12px}#furniture strong{flex-basis:100%}#furniture input{width:85px}
+@media(max-width:600px){input[type=number],input[type=text],input:not([type]),select{font-size:16px;min-height:44px}.col-ctl .sec:has(#play){order:-1}#sel{grid-template-columns:repeat(2,minmax(0,1fr))}#sel>label{min-width:0}#sel>input[type=range],#sel>span{grid-column:1/-1}#furniture>.ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#furniture strong,#furniture button{grid-column:1/-1}#furniture input{width:100%}.stage-foot{display:none}}
 </style>
 <header class="top"><div><div class="eyebrow">Your personal listening room</div><h3>Music Stage</h3><p class="sub">Place your sound. Find your sweet spot.</p></div><span class="badge">LOCAL AUDIO STUDIO</span></header>
 <div class="layout">
 <div class="col-stage">
 <section class="stage" aria-labelledby="h-stage">
-<div class="stagebar"><h4 id="h-stage">Stage</h4><span class="hint">drag cabinets &amp; listener · click floor to move · Delete removes selection</span></div>
+<div class="stagebar"><h4 id="h-stage">Stage</h4><span class="hint">drag speakers, furniture &amp; listener · click floor to move</span></div>
 <canvas id=c width=900 height=600 role="img" aria-label="3D room view. Speakers are numbered cabinets, listener is the green head with heading."></canvas>
 <div class="stage-foot"><span><strong>●</strong> colored ring = speaker type</span><span><strong>○</strong> white ring = selected</span><span><strong>▲</strong> green = you, facing the arrow</span><span>drag = live move</span></div>
 </section>
@@ -123,7 +126,7 @@ footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:
 <label>Response <input type=range id=sens min=0.5 max=2 step=0.1 value=1 style="width:70px" aria-label="Tracking sensitivity"></label></div>
 </section>
 <section class="row sec" aria-labelledby="h-snd"><h4 id="h-snd"><span>06</span>Sound</h4>
-<div class="ctl"><button id=tL>Test L</button><button id=tR>Test R</button>
+<div class="ctl"><label>Test tone <select id=testFreq><option value=80>Bass · 80 Hz</option><option value=1000 selected>Mid · 1 kHz</option><option value=6000>Treble · 6 kHz</option></select></label><button id=tL>Test L</button><button id=tR>Test R</button>
 <label>Balance <input type=range id=bal min=-1 max=1 step=0.1 value=0 style="width:100px" aria-label="Left right balance"></label>
 <label><input type=checkbox id=hq> Precise imaging <span class="hint">(experimental — off = classic engine)</span></label>
 <label>Width <input type=range id=width min=0 max=2 step=0.05 value=1 style="width:90px" aria-label="Stereo width, 0 mono, 1 record, 2 hyper wide"></label>
@@ -138,7 +141,7 @@ footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:
 </section>
 </div>
 </div>
-<footer class="row hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · speaker height in its panel · ears at 1.6m · build classic-3d-eq</footer>
+<footer class="row hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · speaker height in its panel · ears at 1.6m · build balanced-room-1</footer>
 <script>
 // ponytail: mono-feed per speaker (stereo->HRTF sounds phasey/left-biased). L/R split restores separation.
 let AC, buf, playing=[], live=[], master, verb, wet, comp, balN, trimL=null, trimR=null, anL=null, anR=null;
@@ -260,7 +263,7 @@ function syncAudioSafe(){try{updateLis();}catch(e){}}
 $('mvol').oninput=e=>{if(master)master.gain.value=+e.target.value;};
 function fmt(t){t=Math.max(0,Math.floor(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
 function dur(){if(buf)return buf.duration;const k=Object.keys(stemBufs)[0];return k?stemBufs[k].duration:0;}
-function curPos(){const D=dur();if(!D)return 0;if(!playing.length)return playOffset;return (playOffset+AC.currentTime-playStart)%D;}
+function curPos(){const D=dur();if(!D)return 0;if(!playing.length)return playOffset;return (playOffset+Math.max(0,AC.currentTime-playStart))%D;}
 function updTime(){const D=dur();if(!D){$('time').textContent='0:00/0:00';return;}
   $('time').textContent=fmt(curPos())+'/'+fmt(D);
   if(playing.length)$('seek').value=Math.round(curPos()/D*1000);
@@ -290,8 +293,10 @@ $('wallAbs').oninput=()=>syncAudioSafe(); // tap gains follow live
 function beep(side){
   AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume();
   const o=AC.createOscillator(),g=AC.createGain(),p=AC.createStereoPanner();
-  o.frequency.value=side==='L'?440:880;p.pan.value=side==='L'?-1:1;
-  o.connect(g);g.connect(p);p.connect(AC.destination);o.start();o.stop(AC.currentTime+0.4);
+  const t=AC.currentTime;o.frequency.value=+$('testFreq').value;p.pan.value=side==='L'?-1:1;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.04,t+0.02);g.gain.setValueAtTime(0.04,t+0.35);g.gain.linearRampToValueAtTime(0,t+0.4);
+  o.connect(g);g.connect(p);p.connect(AC.destination);o.start(t);o.stop(t+0.4);
+  o.onended=()=>{o.disconnect();g.disconnect();p.disconnect();};
 }
 $('tL').onclick=()=>beep('L');$('tR').onclick=()=>beep('R');
 // ponytail: open catalogs only (YT/Spotify lock audio in iframe/DRM, unreachable from WebAudio).
@@ -381,9 +386,9 @@ $('motion').onclick=async()=>{
 };
 
 function impulse(dur,decay){
-  const r=AC.sampleRate*dur,b=AC.createBuffer(2,r,AC.sampleRate);
-  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);
-    for(let i=0;i<r;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/r,decay);}
+  const r=Math.ceil(AC.sampleRate*dur),b=AC.createBuffer(1,r,AC.sampleRate),d=b.getChannelData(0);
+  let seed=17;
+  for(let i=0;i<r;i++){seed=(1664525*seed+1013904223)>>>0;d[i]=(seed/2147483648-1)*Math.pow(1-i/r,decay);}
   return b;
 }
 function dist(a,b2){const ah=('h' in a)?a.h:EAR,bh=('h' in b2)?b2.h:EAR;
@@ -492,7 +497,9 @@ function startPb(offset){
     // band filter BEFORE split (biquad keeps L/R separate) + mono-feed was killing the record's own L/R movement,
     // so M behaves like a real stereo box: L and R through two panners ±0.35m around the cabinet.
     const bf=AC.createBiquadFilter();const setBand=()=>{const b=s.sub?'Sub':(s.band||'Full');
-      if(b==='Tweeter'){bf.type='highpass';bf.frequency.value=2500;}
+      bf.Q.value=0.707;
+      if(b==='Sub'){bf.type='lowpass';bf.frequency.value=120;}
+      else if(b==='Tweeter'){bf.type='highpass';bf.frequency.value=2500;}
       else if(b==='Bass'){bf.type='lowpass';bf.frequency.value=300;}
       else if(b==='Vocal'){bf.type='bandpass';bf.frequency.value=1200;bf.Q.value=0.8;}
       else if(b==='Bright'){bf.type='highpass';bf.frequency.value=5000;}
@@ -503,7 +510,7 @@ function startPb(offset){
     src.connect(bf);bf.connect(sp);sp.connect(gL,0);sp.connect(gR,b.numberOfChannels<2?0:1);
     gL.connect(oL);gR.connect(oR);gL.connect(xRL);xRL.connect(oR);gR.connect(xLR);xLR.connect(oL);
     // M/S-style width (Blumlein matrix idea): k=1-w crossfeed. w=1 record, 0 mono, 2 hyper-wide.
-    const setW=()=>{const k=1-(+$('width').value||1);xLR.gain.value=k;xRL.gain.value=k;}; // mono file: ch0 feeds both
+    const setW=()=>{const k=1-Number($('width').value);xLR.gain.value=k;xRL.gain.value=k;}; // mono file: ch0 feeds both
     const flip=m=>m==='L'?'R':m==='R'?'L':m;
     const chMode=()=>{const m0=s.sub?'SUB':(s.ch||'M');return (SWAP&&!s.sub)?flip(m0):m0;};
     const setCh=()=>{const m=chMode();
@@ -548,9 +555,11 @@ function startPb(offset){
     const chains=m==='M'?[mkChain([oL],-0.35),mkChain([oR],0.35)]:m==='L'?[mkChain([oL],0)]:m==='R'?[mkChain([oR],0)]:[mkChain([oL,oR],0)];
     const feed=AC.createGain();chains.forEach(ch=>ch.roomTap.connect(feed));
     const taps=$('walls').checked?earlyTaps(s,feed,useHQ):null;
-    if(!s.sub){const rv=AC.createGain();rv.gain.value=0.5*(1.28-F.abs);feed.connect(rv);rv.connect(verb);}    src.start(0,offset%src.buffer.duration);playing.push(src);live.push({s,gL,gR,bf,chains,taps,setCh,setBand,setW});
+    if(!s.sub){const rv=AC.createGain();rv.gain.value=0.5*(1.28-F.abs);feed.connect(rv);rv.connect(verb);}
+    playing.push(src);live.push({s,gL,gR,bf,chains,taps,setCh,setBand,setW});
   });
-  playOffset=offset;playStart=AC.currentTime;
+  playOffset=offset;playStart=AC.currentTime+0.05;
+  playing.forEach(src=>src.start(playStart,offset%src.buffer.duration));
   updateLis();
   $('play').textContent='Stop';
 }
@@ -677,6 +686,13 @@ function pick(e){
   sps.forEach((s,i)=>{const [sx,sy]=P3(s.x,s.y,s.h??EAR);
     const d=Math.hypot(sx-px,sy-0.45*S3()-py);
     if(Math.abs(sx-px)<Math.max(16,(s.sub?0.42:0.28)*S3()+6)&&Math.abs(sy-0.45*S3()-py)<Math.max(20,0.45*S3()+6)&&d<bd){bd=d;best={t:'s',i};}});
+  if(!best)[...furniture.keys()].sort((a,b)=>furniture[a].y-furniture[b].y).forEach(i=>{
+    const o=furniture[i],corners=[[o.x,o.y],[o.x+o.w,o.y],[o.x+o.w,o.y+o.d],[o.x,o.y+o.d]];
+    for(const [ids,zs] of [[[0,1,1,0],[0,0,o.h,o.h]],[[1,2,2,1],[0,0,o.h,o.h]],[[0,1,2,3],[o.h,o.h,o.h,o.h]]]){
+      const path=new Path2D();ids.forEach((id,j)=>{const p=P3(...corners[id],zs[j]);if(j)path.lineTo(...p);else path.moveTo(...p);});path.closePath();
+      if(x2.isPointInPath(path,px,py))best={t:'f',i};
+    }
+  });
   const [lx,ly]=P3(listener.x,listener.y,1.1);
   if(Math.hypot(lx-px,ly-py)<Math.max(18,0.35*S3()))best={t:'l'};
   return best;
@@ -687,24 +703,26 @@ function syncAudio(){if(syncQueued)return;syncQueued=true; // one audio update p
     if(live.length){live.forEach((o,i)=>{if(sps[i])o.s=sps[i];});updateLis();}
     else if(AC&&AC.listener)updateLis();
   }catch(e){if(!window._ae){window._ae=1;say('audio update error: '+((e&&e.message)||e));}}});}
-c.addEventListener('pointerdown',e=>{e.preventDefault();
+c.addEventListener('pointerdown',e=>{if(!e.isPrimary||e.button!==0)return;e.preventDefault();
   drag=pick(e);moved=false;
-  if(drag){const m=evtPos(e),o=drag.t==='s'?sps[drag.i]:listener;drag.dx=o.x-m.x;drag.dy=o.y-m.y;}
+  if(drag){const m=evtPos(e),o=drag.t==='s'?sps[drag.i]:drag.t==='f'?furniture[drag.i]:listener;drag.dx=o.x-m.x;drag.dy=o.y-m.y;}
   if(drag&&drag.t==='s'){selIdx=drag.i;showSel();draw();}
   try{c.setPointerCapture(e.pointerId);}catch(err){}});
 c.addEventListener('pointermove',e=>{
-  if(!drag)return;e.preventDefault();moved=true;
-  const m=evtPos(e),o=drag.t==='s'?sps[drag.i]:listener;
-  o.x=Math.max(0,Math.min(room.w,m.x+drag.dx));
-  o.y=Math.max(0,Math.min(room.l,m.y+drag.dy));
+  if(!e.isPrimary)return;
+  if(!drag){moved=true;return;}e.preventDefault();moved=true;
+  const m=evtPos(e),o=drag.t==='s'?sps[drag.i]:drag.t==='f'?furniture[drag.i]:listener;
+  o.x=Math.max(0,Math.min(room.w-(drag.t==='f'?o.w:0),m.x+drag.dx));
+  o.y=Math.max(0,Math.min(room.l-(drag.t==='f'?o.d:0),m.y+drag.dy));
   syncAudio();draw();
 });
 c.addEventListener('pointerup',e=>{
-  if(!moved&&!drag){const m=evtPos(e); // click empty floor = teleport listener there
-    m.x=Math.max(0,Math.min(room.w,m.x));m.y=Math.max(0,Math.min(room.l,m.y));
-    listener.x=m.x;listener.y=m.y;syncAudio();draw();}
+  if(!e.isPrimary)return;
+  if(!moved&&!drag){const m=evtPos(e);
+    if(m.x>=0&&m.x<=room.w&&m.y>=0&&m.y<=room.l){listener.x=m.x;listener.y=m.y;syncAudio();draw();}}
+  if(drag?.t==='f')showFurniture();else if(drag?.t==='s')showSel();
   drag=null;});
-c.addEventListener('pointercancel',()=>drag=null);
+c.addEventListener('pointercancel',()=>{if(drag?.t==='f')showFurniture();drag=null;});
 window.addEventListener('keydown',e=>{
   const t=(e.target&&e.target.tagName)||'';
   if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA')return; // typing in search box etc.
