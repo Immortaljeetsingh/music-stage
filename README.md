@@ -63,7 +63,19 @@ Head tracking uses the device running the page's orientation events, where suppo
 
 `stems.html` loads Demucs/ONNX runtime and a large external model, then attempts separation in the browser. It can require substantial RAM and time, especially on mobile; model downloads and browser compatibility can fail. GitHub Pages does not supply cross-origin isolation headers for multithreaded WASM. Saved stems use IndexedDB on the current browser/origin and can be assigned per speaker.
 
-Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. Source file selection and room layout are not persisted across reloads; saved stems are the exception. No music files are bundled in this repository.
+Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. Source file selection and room layout are not persisted across reloads; saved stems are the exception. Five credited CC-BY demo excerpts and their four synchronized FLAC stems are bundled. Choose a Demo in Source, click Load demo, then Play; All parts / Vocals only / Drums only / Bass only / Other only isolate the virtual sources. Demos require HTTP(S), not file://. The Beat is percussion-led with quieter vocal samples; source separation does not isolate every individual instrument.
+
+## Bundled demo credits
+
+Source audio and full stems-credit chains: [ccmixter.org](https://ccmixter.org/). Excerpts are 24 seconds, faded, and machine-separated with [Demucs](https://github.com/adefossez/demucs); stems are AI-generated, not the artists' original studio stems. Two tracks were replaced because their excerpts lacked drums and bass.
+
+- **Come Home (71178)** — Gabriel Shellington ft. spinningmerkaba — [source](https://ccmixter.org/files/gabriel_shelligton/71178) — [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) — samples [Come Home pell by spinningmerkaba](https://ccmixter.org/files/jlbrock44/46531) (CC BY 3.0)
+- **M.U.S.T.A.N.G Beats (71068)** — Gabriel Shellington ft. Ms. Vybe — [source](https://ccmixter.org/files/gabriel_shelligton/71068) — [CC BY 2.5](https://creativecommons.org/licenses/by/2.5/) — samples [M.U.S.T.A.N.G by Ms. Vybe](https://ccmixter.org/files/kendra/3301) (CC BY 2.5)
+- **Come Home (46603)** — AlexBeroza ft. spinningmerkaba — [source](https://ccmixter.org/files/AlexBeroza/46603) — [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) — samples [Come Home pell by spinningmerkaba](https://ccmixter.org/files/jlbrock44/46531) (CC BY 3.0)
+- **A Foolish Game (46258)** — AlexBeroza ft. Snowflake, Admiral Bob, SackJo22, Martijn de Boer (NiGiD) — [source](https://ccmixter.org/files/AlexBeroza/46258) — [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) — samples [A Foolish Game pell by Madam Snowflake](https://ccmixter.org/files/snowflake/46165), [Admiral Bob 12-bar blues](https://ccmixter.org/files/admiralbob77/44070) (CC BY 3.0), [second Admiral Bob 12-bar](https://ccmixter.org/files/admiralbob77/44071) (CC BY 3.0), [A Foolish Game by Martijn de Boer (NiGiD)](https://ccmixter.org/files/NiGiD/46175) (CC BY 3.0), [A Foolish Game by SackJo22](https://ccmixter.org/files/SackJo22/46200) (CC BY 3.0)
+- **The Beat (Remastered 2026) (70823)** — Gabriel Shellington ft. cdk — [source](https://ccmixter.org/files/gabriel_shelligton/70823) — [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) — samples [the beat by cdk](https://ccmixter.org/files/cdk/1667) (CC BY 2.5; original description credits J.Lang vocals)
+
+Licenses permit redistribution and derivative stems with attribution above; do not remove the credits. Audio licenses are separate from any code license. Demo rig: vocal front, drums left, instruments rear-high, bass sub rear — buttons audition each part solo.
 
 ## Run locally
 
@@ -84,7 +96,10 @@ node --check test.cjs
 node --check test-ui.cjs
 node test.cjs
 node test-ui.cjs
+node test-demos.cjs
 ```
+
+The demo test also needs Python on PATH; it serves this folder temporarily on port 8931 and checks all five bundles, synchronized decoded lengths, stereo output, attribution and solo controls.
 
 `test.cjs` renders actual Web Audio through Chrome's OfflineAudioContext and checks centered bass/treble symmetry with reflections in both engines. `test-ui.cjs` checks mouse and real browser touch input for bed, sofa, and wardrobe dragging at mobile/desktop sizes, coordinate synchronization, bounds, and overflow. These tests do not verify perceived realism on a physical headset. No lint/typecheck command is configured.
 

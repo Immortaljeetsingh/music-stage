@@ -1,0 +1,182 @@
+[
+  {
+    "id": "71178",
+    "title": "Come Home",
+    "artist": "Gabriel Shellington",
+    "featuring": "spinningmerkaba",
+    "source": "https://ccmixter.org/files/gabriel_shelligton/71178",
+    "download": "https://ccmixter.org/content/gabriel_shelligton/gabriel_shelligton_-_Come_Home_1.mp3",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "start": 18,
+    "duration": 24,
+    "stems": [
+      "drums",
+      "bass",
+      "other",
+      "vocals"
+    ],
+    "energy": {
+      "drums": {
+        "rms": 0.06741844862699509,
+        "peak": 0.3655426800251007
+      },
+      "bass": {
+        "rms": 0.029057638719677925,
+        "peak": 0.09397232532501221
+      },
+      "other": {
+        "rms": 0.05245472490787506,
+        "peak": 0.2903338372707367
+      },
+      "vocals": {
+        "rms": 0.0992359071969986,
+        "peak": 0.6617774963378906
+      }
+    },
+    "contentWarning": false
+  },
+  {
+    "id": "71068",
+    "title": "M.U.S.T.A.N.G Beats",
+    "artist": "Gabriel Shellington",
+    "featuring": "Ms. Vybe",
+    "source": "https://ccmixter.org/files/gabriel_shelligton/71068",
+    "download": "https://ccmixter.org/content/gabriel_shelligton/gabriel_shelligton_-_M.U.S.T.A.N.G_Beats.mp3",
+    "license": "https://creativecommons.org/licenses/by/2.5/",
+    "start": 35,
+    "duration": 24,
+    "stems": [
+      "drums",
+      "bass",
+      "other",
+      "vocals"
+    ],
+    "energy": {
+      "drums": {
+        "rms": 0.0871811956167221,
+        "peak": 0.6570903658866882
+      },
+      "bass": {
+        "rms": 0.0762399286031723,
+        "peak": 0.10808298736810684
+      },
+      "other": {
+        "rms": 0.04184000566601753,
+        "peak": 0.19398730993270874
+      },
+      "vocals": {
+        "rms": 0.07962815463542938,
+        "peak": 0.8051586747169495
+      }
+    },
+    "contentWarning": false
+  },
+  {
+    "id": "46603",
+    "title": "Come Home",
+    "artist": "Alex",
+    "featuring": "spinningmerkaba",
+    "source": "https://ccmixter.org/files/AlexBeroza/46603",
+    "download": "https://ccmixter.org/content/AlexBeroza/AlexBeroza_-_Come_Home_2.mp3",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "start": 30,
+    "duration": 24,
+    "stems": [
+      "drums",
+      "bass",
+      "other",
+      "vocals"
+    ],
+    "energy": {
+      "drums": {
+        "rms": 0.11553948372602463,
+        "peak": 0.8499999642372131
+      },
+      "bass": {
+        "rms": 0.14838294684886932,
+        "peak": 0.5170115232467651
+      },
+      "other": {
+        "rms": 0.13798177242279053,
+        "peak": 0.7756984233856201
+      },
+      "vocals": {
+        "rms": 0.0752895399928093,
+        "peak": 0.3705843985080719
+      }
+    },
+    "contentWarning": false
+  },
+  {
+    "id": "46258",
+    "title": "A Foolish Game",
+    "artist": "Alex",
+    "featuring": "Snowflake, Admiral Bob, SackJo22, Martijn de Boer",
+    "source": "https://ccmixter.org/files/AlexBeroza/46258",
+    "download": "https://ccmixter.org/content/AlexBeroza/AlexBeroza_-_A_Foolish_Game.mp3",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "start": 30,
+    "duration": 24,
+    "stems": [
+      "drums",
+      "bass",
+      "other",
+      "vocals"
+    ],
+    "energy": {
+      "drums": {
+        "rms": 0.08759176731109619,
+        "peak": 0.8500000238418579
+      },
+      "bass": {
+        "rms": 0.07712873071432114,
+        "peak": 0.4520549178123474
+      },
+      "other": {
+        "rms": 0.05378354713320732,
+        "peak": 0.5451756119728088
+      },
+      "vocals": {
+        "rms": 0.08415880799293518,
+        "peak": 0.5624373555183411
+      }
+    },
+    "contentWarning": false
+  },
+  {
+    "id": "70823",
+    "title": "The Beat (Remastered 2026)",
+    "artist": "Gabriel Shellington",
+    "featuring": "cdk",
+    "source": "https://ccmixter.org/files/gabriel_shelligton/70823",
+    "download": "https://ccmixter.org/content/gabriel_shelligton/gabriel_shelligton_-_The_Beat_(Remastered_2026)_1.mp3",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "start": 60,
+    "duration": 24,
+    "stems": [
+      "drums",
+      "bass",
+      "other",
+      "vocals"
+    ],
+    "energy": {
+      "drums": {
+        "rms": 0.037310078740119934,
+        "peak": 0.2540879547595978
+      },
+      "bass": {
+        "rms": 0.008190461434423923,
+        "peak": 0.06287410110235214
+      },
+      "other": {
+        "rms": 0.004746722057461739,
+        "peak": 0.07347917556762695
+      },
+      "vocals": {
+        "rms": 0.003906890284270048,
+        "peak": 0.04235577583312988
+      }
+    },
+    "contentWarning": false
+  }
+]
