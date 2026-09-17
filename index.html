@@ -1,0 +1,758 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stage Test (local)</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui;background:#0e1116;color:#e8ecf1;margin:0;padding:12px;max-width:1100px;margin-inline:auto}
+h3{margin:6px 0 10px;letter-spacing:.5px}
+canvas{border:1px solid #2b3542;border-radius:10px;width:100%;height:auto;aspect-ratio:3/2;touch-action:none;background:#11161d;display:block}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center;background:#161c25;border:1px solid #232c39;border-radius:10px;padding:8px 10px}
+button{background:#233043;color:#e8ecf1;border:1px solid #33445a;border-radius:8px;padding:8px 14px;cursor:pointer;min-height:40px;font-size:15px}
+button:hover{background:#2d3f57}
+button#play{background:#14532d;border-color:#1f7a42;font-weight:700}
+input[type=number]{width:60px;background:#0e1319;color:#e8ecf1;border:1px solid #33445a;border-radius:6px;padding:6px;font-size:15px}
+input[type=text]{background:#0e1319;color:#e8ecf1;border:1px solid #33445a;border-radius:6px;padding:8px;font-size:15px}
+select{background:#0e1319;color:#e8ecf1;border:1px solid #33445a;border-radius:6px;padding:8px;font-size:15px;max-width:100%}
+input[type=range]{accent-color:#38bdf8;min-height:32px}
+input[type=file]{max-width:100%;font-size:14px}
+#stat{color:#7dd3fc;min-height:1.2em;margin:4px 0 0}
+#res{margin:0;padding-left:22px;width:100%}
+#res li{margin:6px 0}
+.hint{font-size:12px;color:#a7b3c2}
+.top h3{margin:2px 0;font-size:22px;letter-spacing:.5px}
+.top .sub{margin:0 0 2px;color:#a7b3c2;font-size:13px}
+.sec h4{margin:0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#8fa1b8;white-space:nowrap}
+.sec h4 span{display:inline-block;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;border-radius:6px;padding:1px 7px;margin-right:7px;font-size:11px}
+.sec{flex-direction:column;align-items:stretch;gap:10px}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stage{background:#161c25;border:1px solid #232c39;border-radius:10px;padding:8px 10px;margin:8px 0}
+.stagebar{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:10px;align-items:start}
+.col-stage{position:sticky;top:8px}
+.col-ctl{display:flex;flex-direction:column;gap:0;min-width:0}
+.col-ctl .sec{margin:0 0 10px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.col-stage{position:static}.stage{position:sticky;top:0;z-index:5}}
+.stagebar h4{margin:0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#8fa1b8}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
+.meters{display:inline-flex;gap:3px;align-items:flex-end;height:24px;padding:0 4px}
+.meters i{display:block;width:9px;min-height:2px;background:#38bdf8;border-radius:2px}
+.meters #mR{background:#22c55e}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media(max-width:640px){body{padding:8px}button{flex:1 1 auto}#seek{flex:1 1 100%}}
+:root{color-scheme:dark}
+body{max-width:1440px;padding:28px;background:radial-gradient(ellipse at 15% 0%,#15302e 0,transparent 45%),#090e14;color:#e5edf4;font-size:14px}
+.top{display:flex;align-items:center;justify-content:space-between;padding:0 4px 26px;gap:20px}
+.top h3{font-size:32px;letter-spacing:-1px;font-weight:750}.top .sub{color:#9cafbb;margin-top:6px}
+.eyebrow{color:#73dcc2;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+.badge{border:1px solid #34594f;border-radius:30px;padding:9px 14px;color:#8de3c9;font-size:11px;letter-spacing:1px;white-space:nowrap}
+.layout{grid-template-columns:minmax(0,1.75fr) minmax(350px,1fr);gap:20px}
+.row,.stage{background:linear-gradient(145deg,#17212b,#101822);border:1px solid #2a3743;border-radius:16px;box-shadow:0 12px 30px #0002;padding:18px}
+.stage{margin-top:0}.stagebar{align-items:center;margin-bottom:16px;flex-wrap:wrap}.stagebar h4{color:#e6f2ed;letter-spacing:2px}
+canvas{background:radial-gradient(ellipse at 50% 30%,#203039,#0b131c 80%);border:1px solid #2e424d;border-radius:12px;cursor:grab}
+canvas:active{cursor:grabbing}.stage-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;font-size:11px;color:#9bafbf}
+.stage-foot strong{color:#83dfc5;font-weight:500}.sec{gap:16px}.col-ctl .sec{margin-bottom:14px}
+.sec h4{color:#acbecb;font-size:10px;letter-spacing:2px}.sec h4 span{background:#253e40;color:#8bdfce;border:1px solid #355b58;padding:3px 6px}
+.ctl{gap:10px}.ctl label{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;color:#bbcad5;font-size:12px;max-width:100%}
+button{background:linear-gradient(#283a49,#20303f);border-color:#3a5060;min-height:42px;font-size:13px;transition:background .15s, border-color .15s}
+button:hover{background:#33505c;border-color:#73c5b1}button#play{background:#87e3c2;color:#08281c;border-color:#87e3c2;min-width:90px;box-shadow:0 0 22px #79ebbf18}
+input:not([type]),input[type=text],input[type=number],select{background:#0b141e;color:#dce8ef;border:1px solid #354959;border-radius:8px;padding:10px;font:inherit;min-width:0;max-width:100%}
+#q,#url{flex:1 1 140px;width:140px}input[type=file]{width:100%;padding:10px;border:1px dashed #45616b;border-radius:10px;color:#a8bec9;background:#101e27}
+input::file-selector-button{background:#2c4c4b;color:#c8fae9;border:0;border-radius:6px;padding:10px 14px;margin-right:12px;cursor:pointer}
+input[type=range],input[type=checkbox]{accent-color:#83dfc5}#stat{color:#9cdcca;overflow-wrap:anywhere;font-size:12px}
+#sel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}#sel>input[type=range]{width:100%!important}#sel>span{grid-column:1/-1;color:#9cafbf;font-size:11px}#sel select{width:100%}
+#time{font:12px ui-monospace,monospace;color:#a9c0cd}.meters{background:#080f17;border:1px solid #334651;border-radius:5px;height:30px;padding:3px 6px}
+footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:#8ca1b1;font-size:11px}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}.col-stage{position:static}.stage{position:static}.col-ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.col-ctl .sec{margin:0}}
+@media(max-width:600px){body{padding:14px}.top{padding-bottom:20px}.top h3{font-size:27px}.badge{display:none}.layout{gap:14px}.row,.stage{padding:14px}.col-ctl{display:flex}.stagebar .hint{font-size:10px}.stage-foot{font-size:10px}button{min-height:44px}}
+</style>
+<header class="top"><div><div class="eyebrow">Your personal listening room</div><h3>Music Stage</h3><p class="sub">Place your sound. Find your sweet spot.</p></div><span class="badge">LOCAL AUDIO STUDIO</span></header>
+<div class="layout">
+<div class="col-stage">
+<section class="stage" aria-labelledby="h-stage">
+<div class="stagebar"><h4 id="h-stage">Stage</h4><span class="hint">drag cabinets &amp; listener · click floor to move · Delete removes selection</span></div>
+<canvas id=c width=900 height=600 role="img" aria-label="3D room view. Speakers are numbered cabinets, listener is the green head with heading."></canvas>
+<div class="stage-foot"><span><strong>●</strong> colored ring = speaker type</span><span><strong>○</strong> white ring = selected</span><span><strong>▲</strong> green = you, facing the arrow</span><span>drag = live move</span></div>
+</section>
+<div class="row sec" id=sel role="group" aria-label="Selected speaker">Tap a speaker cabinet to select it.</div>
+</div>
+<div class="col-ctl">
+<section class="row sec" aria-labelledby="h-src"><h4 id="h-src"><span>01</span>Source</h4>
+<div class="ctl"><input type=file id=f accept="audio/*" aria-label="Upload an audio file"></div>
+<div class="ctl"><select id=prov aria-label="Free music catalog"><option value=archive>Archive.org</option><option value=audius>Audius</option></select>
+<input id=q placeholder="search free music…" aria-label="Search free music">
+<button id=search>Search</button></div>
+<ol id=res></ol>
+<div class="ctl"><input id=url placeholder="…or paste a direct mp3/ogg link" aria-label="Paste a direct audio link"><button id=loadUrl>Load link</button></div>
+<p id=stat role="status" aria-live="polite"></p>
+</section>
+<section class="row sec" aria-labelledby="h-room"><h4 id="h-room"><span>02</span>Room</h4>
+<div class="ctl"><label>W <input type=number id=rw value=6 min=2 max=30 step=0.5 aria-label="Room width meters"></label>
+<label>L <input type=number id=rl value=8 min=2 max=30 step=0.5 aria-label="Room length meters"></label>
+<label>H <input type=number id=rh value=3 min=2 max=10 step=0.5 aria-label="Room height meters"></label></div>
+<div class="ctl"><label><input type=checkbox id=walls checked> Wall reflections</label>
+<label>Absorb <input type=range id=wallAbs min=0.1 max=0.9 step=0.05 value=0.5 aria-label="Wall absorption"></label>
+<label>Room verb <input type=range id=roomAmt min=0 max=0.4 step=0.01 value=0.05 style="width:80px" aria-label="Late reverb amount"></label>
+<label><input type=checkbox id=air> Air dulls far</label></div>
+<div class="ctl"><label>Room softness <select id=furn><option>Empty</option><option>Furnished</option><option>Cluttered</option></select></label></div>
+<div class="ctl"><button id=addBed>Add bed</button><button id=addSofa>Add sofa</button><button id=addWardrobe>Add wardrobe / almirah</button></div>
+<div id=furniture></div><p class=hint>Furniture coordinates and dimensions are meters. Softness/absorption and blocked-path filtering are adjustable approximations, not a measured room replica. Hard cupboards do not absorb like upholstery.</p>
+</section>
+<section class="row sec" aria-labelledby="h-rig"><h4 id="h-rig"><span>03</span>Rig</h4>
+<div class="ctl"><button id=addSp>Add full</button>
+<button id=addTw>Add tweeter</button>
+<button id=addSub>Add sub</button>
+<button id=stage8>8-corner stage</button>
+<button id=mapStems style="display:none">Map stems</button>
+<button id=openStems>Stems…</button></div>
+</section>
+<section class="row sec" aria-labelledby="h-tr"><h4 id="h-tr"><span>04</span>Transport</h4>
+<div class="ctl"><button id=play>Play</button>
+<input type=range id=seek min=0 max=1000 value=0 style="width:180px" aria-label="Seek position">
+<span id=time>0:00/0:00</span>
+<span class="meters" title="Live output fed to left/right ear"><i id=mL></i><i id=mR></i></span>
+<button id=back aria-label="Back 10 seconds">−10s</button><button id=fwd aria-label="Forward 10 seconds">+10s</button>
+<label>Master <input type=range id=mvol min=0 max=2.5 step=0.05 value=0.9 style="width:100px" aria-label="Master volume"></label></div>
+</section>
+<section class="row sec" aria-labelledby="h-head"><h4 id="h-head"><span>05</span>Head tracking</h4>
+<div class="ctl"><button id=motion>Head track</button>
+<button id=center>Center</button>
+<label><input type=checkbox id=uni checked> Manual (no sensor)</label>
+<label>Turn <input type=range id=yaw min=0 max=360 value=0 style="width:90px" aria-label="Manual turn"></label>
+<label>Look <input type=range id=look min=-60 max=60 value=0 style="width:80px" aria-label="Manual look up down"></label>
+<label>Response <input type=range id=sens min=0.5 max=2 step=0.1 value=1 style="width:70px" aria-label="Tracking sensitivity"></label></div>
+</section>
+<section class="row sec" aria-labelledby="h-snd"><h4 id="h-snd"><span>06</span>Sound</h4>
+<div class="ctl"><button id=tL>Test L</button><button id=tR>Test R</button>
+<label>Balance <input type=range id=bal min=-1 max=1 step=0.1 value=0 style="width:100px" aria-label="Left right balance"></label>
+<label><input type=checkbox id=hq> Precise imaging <span class="hint">(experimental — off = classic engine)</span></label>
+<label>Width <input type=range id=width min=0 max=2 step=0.05 value=1 style="width:90px" aria-label="Stereo width, 0 mono, 1 record, 2 hyper wide"></label>
+<label><input type=checkbox id=align checked> Time-align rig</label>
+<label><input type=checkbox id=swap> Swap L/R</label>
+<label>L trim <input type=range id=trimL min=0 max=1.5 step=0.05 value=1 style="width:70px" aria-label="Left ear trim" title="Output-level trim per ear — compensates bud imbalance"></label>
+<label>R trim <input type=range id=trimR min=0 max=1.5 step=0.05 value=1 style="width:70px" aria-label="Right ear trim" title="Output-level trim per ear — compensates bud imbalance"></label>
+<label>Headphone EQ <select id=hpdev title="Optional measurement-based starting points, not personal calibration"><option value="">None / bypass</option><option>AirPods Pro 2 (ANC)</option><option>AirPods 4</option><option>AirPods 4 (ANC)</option><option>EarPods</option><option value="pro3">AirPods Pro 3 — uncalibrated / bypass</option></select></label></div>
+<p class=hint>EQ: AutoEq / crinacle 711 (Pro 2 ANC), RTINGS B&amp;K 5128 (AirPods 4), RTINGS HMS II.3 (EarPods; connector revision unverified). Fit and listening mode change response. Pro 3 numerical correction was not verified here. Preset preamp reductions preserve headroom.</p>
+<p class=hint>Start at low system volume. Extra gain can distort; the output ceiling is not hearing protection. Use stereo output, avoid the Bluetooth headset microphone, and disable other spatializers/EQ when comparing. This page cannot control AirPods ANC or read their head sensors.</p>
+<details class=hint><summary>Research &amp; calibration limits</summary><p>Furniture absorption and occlusion are simplified, not a wave simulation; low-frequency room modes and edge diffraction are not solved. Exact replication needs measured room/binaural impulse responses, source directivity, and personal headphone/HRTF calibration.</p><p><a href="https://github.com/jaakkopasanen/AutoEq">AutoEq measurements and filters</a> · <a href="https://odeon.dk/learn/articles/room-acoustics/">ODEON room acoustics</a> · <a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/bluetooth/bluetooth-classic-audio">Windows Bluetooth audio</a></p></details>
+</section>
+</div>
+</div>
+<footer class="row hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · speaker height in its panel · ears at 1.6m · build classic-3d-eq</footer>
+<script>
+// ponytail: mono-feed per speaker (stereo->HRTF sounds phasey/left-biased). L/R split restores separation.
+let AC, buf, playing=[], live=[], master, verb, wet, comp, balN, trimL=null, trimR=null, anL=null, anR=null;
+let srcMono=false; // ROOT CAUSE (right side dead): splitter output 1 is silence for mono files,
+// so every R chain got zeros. Dual-mono routes ch0 to both sides when the file has 1 channel.
+let SWAP=false; // diagnostic: flip L/R interpretation (dead side follows swap = graph/content, stays = ear/OS)
+let TRIM={l:1,r:1}; // per-ear output trim: compensates bud imbalance, proves ear vs graph
+let stemBufs={}, stemNames=[]; // filled from stems.html via IndexedDB: vocals/drums/bass/other
+// headphone correction: verified measurement-based presets (AutoEq: crinacle 711 + Rtings B&K5128).
+// No numerical AirPods Pro 3 correction was verified in this research.
+const HP_PROFILES={
+ 'AirPods Pro 2 (ANC)':{pre:-3.3,f:[[105,'lowshelf',0.5,0.7],[427,'peaking',-2.6,0.8],[3647,'peaking',2.3,0.77],[9516,'peaking',2.8,3.44],[76,'peaking',1.9,1.34],[10000,'highshelf',-1.8,0.7],[5938,'peaking',2.6,1.27],[6486,'peaking',-6.3,5.92],[1172,'peaking',1.1,5.05],[3326,'peaking',-1.9,4.4]]},
+ 'AirPods 4':{pre:-6.4,f:[[105,'lowshelf',11.4,0.7],[4622,'peaking',6,1.39],[49,'peaking',-11.7,0.39],[1277,'peaking',-2.6,0.86],[3036,'peaking',4.1,2.43],[10000,'highshelf',-1.9,0.7],[354,'peaking',-1.4,1.5],[176,'peaking',1.5,2.04],[618,'peaking',1,2.35],[106,'peaking',-0.9,2.47]]},
+ 'AirPods 4 (ANC)':{pre:-6.2,f:[[105,'lowshelf',12.7,0.7],[49,'peaking',-13.2,0.44],[3573,'peaking',6,1.4],[1318,'peaking',-2.8,1.16],[5138,'peaking',3.2,2.82],[10000,'highshelf',-2,0.7],[166,'peaking',1.2,3.49],[100,'peaking',-0.7,2.5],[438,'peaking',-0.8,2.38],[654,'peaking',0.6,2.93]]},
+ 'EarPods':{pre:-6.2,f:[[105,'lowshelf',6.2,0.7],[6106,'peaking',-6.5,1.79],[4238,'peaking',5.1,1.8],[912,'peaking',2.5,1.87],[1739,'peaking',-2.1,1.73],[10000,'highshelf',-0.8,0.7],[147,'peaking',-1.1,1.2],[78,'peaking',1.7,2.98],[108,'peaking',-0.4,2.22],[2657,'peaking',-0.4,5.13]]}};
+let hpNodes=[]; // active correction chain: preamp + biquads
+// room furnishing: soft stuff absorbs highs + kills late tail; hard clutter scatters mids
+const FURNISH={Empty:{abs:0.28,rt:1.0,lp:4500},Furnished:{abs:0.5,rt:0.6,lp:3200},Cluttered:{abs:0.72,rt:0.35,lp:2200}};
+const furniture=[];
+function furnish(){const f=FURNISH[$('furn').value]||FURNISH.Empty;
+  const soft=Math.min(0.8,furniture.reduce((n,o)=>n+o.w*o.d*o.abs,0)/(room.w*room.l));
+  return {abs:Math.min(0.95,f.abs+soft),rt:f.rt/(1+3*soft),lp:f.lp/(1+soft)};}
+function blocked(s,off=0){return furniture.some(o=>{
+  let lo=0,hi=1;
+  for(const [a,b,min,max] of [[s.x+off,listener.x,o.x,o.x+o.w],[s.y,listener.y,o.y,o.y+o.d],[s.h??EAR,EAR,0,o.h]]){
+    const v=b-a;if(Math.abs(v)<1e-8){if(a<min||a>max)return false;continue;}
+    const t1=(min-a)/v,t2=(max-a)/v;lo=Math.max(lo,Math.min(t1,t2));hi=Math.min(hi,Math.max(t1,t2));if(lo>hi)return false;
+  }return hi>0&&lo<1;
+});}
+function furnitureChanged(){if(playing.length)seekTo(curPos());draw();}
+function showFurniture(){const list=$('furniture');list.replaceChildren();
+  furniture.forEach((o,i)=>{const row=document.createElement('div');row.className='ctl';
+    const name=document.createElement('strong');name.textContent=o.type;row.append(name);
+    for(const [key,title,max] of [['x','X',room.w-o.w],['y','Y',room.l-o.d],['w','Width',room.w-o.x],['d','Depth',room.l-o.y],['h','Height',room.h],['abs','Absorption',1]]){
+      const label=document.createElement('label'),input=document.createElement('input');label.textContent=title+' ';input.type='number';input.min=['w','d','h'].includes(key)?0.1:0;input.max=max;input.step=0.1;input.value=o[key];input.setAttribute('aria-label',o.type+' '+title);
+      input.onchange=()=>{const v=input.valueAsNumber;o[key]=Number.isFinite(v)?Math.max(+input.min,Math.min(+input.max,v)):o[key];showFurniture();furnitureChanged();};label.append(input);row.append(label);
+    }
+    const del=document.createElement('button');del.textContent='Remove '+o.type;del.onclick=()=>{furniture.splice(i,1);showFurniture();furnitureChanged();};row.append(del);list.append(row);
+  });
+}
+function addFurniture(type){const dims={Bed:[1.6,2,0.6,0.6],Sofa:[2,0.9,1,0.6],Wardrobe:[1.4,0.6,2,0.1]}[type];
+  furniture.push({type,x:0,y:0,w:Math.min(room.w,dims[0]),d:Math.min(room.l,dims[1]),h:Math.min(room.h,dims[2]),abs:dims[3]});showFurniture();furnitureChanged();}
+let playOffset=0, playStart=0, seekTimer=null;
+const EAR=1.6; // listener ear height, meters
+let room={w:6,l:8,h:3};
+let listener={x:3,y:4,yaw:0,pitch:0,off:0,poff:0,useSensor:false,sYaw:0,sPitch:0};
+let sps=[{x:1,y:1,h:1.6,v:1,sub:false,ch:'L',band:'Full'},{x:5,y:1,h:1.6,v:1,sub:false,ch:'R',band:'Full'}];
+let selIdx=0;
+const c=document.getElementById('c'),x2=c.getContext('2d');
+const $=id=>document.getElementById(id);
+
+for(const [id,key] of [['rw','w'],['rl','l'],['rh','h']])$(id).onchange=e=>{
+  const input=e.target,v=input.valueAsNumber;room[key]=Number.isFinite(v)?Math.max(+input.min,Math.min(+input.max,v)):room[key];input.value=room[key];
+  for(const s of sps){s.x=Math.min(room.w,s.x);s.y=Math.min(room.l,s.y);s.h=Math.min(room.h,s.h??EAR);}
+  listener.x=Math.min(room.w,listener.x);listener.y=Math.min(room.l,listener.y);
+  for(const o of furniture){o.w=Math.min(room.w,o.w);o.d=Math.min(room.l,o.d);o.h=Math.min(room.h,o.h);o.x=Math.min(room.w-o.w,o.x);o.y=Math.min(room.l-o.d,o.y);}
+  showFurniture();showSel();furnitureChanged();
+};
+function audit(b){ // per-channel peak+RMS (sampled): proves whether the FILE has a right channel at all
+  const n=b.length,step=Math.max(1,Math.floor(n/200000));
+  const L=b.getChannelData(0),R=b.numberOfChannels>1?b.getChannelData(1):L;
+  let pl=0,pr=0,sl=0,sr=0,c=0;
+  for(let i=0;i<n;i+=step){const a=Math.abs(L[i]),g=Math.abs(R[i]);if(a>pl)pl=a;if(g>pr)pr=g;sl+=a*a;sr+=g*g;c++;}
+  const db=v=>v<=0.00001?'−∞':(20*Math.log10(v)).toFixed(0)+'dB';
+  return 'L pk '+db(pl)+' / R pk '+db(pr)+(pr<0.001?' — RIGHT CHANNEL SILENT in this file, use another track!':(pl<0.001?' — LEFT CHANNEL SILENT in this file!':''));}
+$('f').onchange=async e=>{
+  AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  const ab=await e.target.files[0].arrayBuffer();
+  buf=await AC.decodeAudioData(ab);
+  srcMono=buf.numberOfChannels<2;
+  playOffset=0;updTime();
+  say('file: '+buf.numberOfChannels+'ch '+(srcMono?'(mono→dual-mono)':('('+audit(buf)+')'))+' — press Play');
+};
+$('addSp').onclick=()=>{sps.push({x:room.w/2,y:room.l/2,h:EAR,v:1,sub:false,ch:'M',band:'Full'});if(playing.length)seekTo(curPos());draw();};
+$('addTw').onclick=()=>{sps.push({x:room.w/2,y:0.5,h:room.h-0.3,v:0.7,sub:false,ch:'M',band:'Tweeter'});if(playing.length)seekTo(curPos());draw();};
+$('addSub').onclick=()=>{sps.push({x:room.w/2,y:room.l-0.5,h:0.3,v:1.4,sub:true,ch:'M',band:'Full'});if(playing.length)seekTo(curPos());draw();};
+$('stage8').onclick=()=>{ // 4 ear-level fulls + 4 ceiling tweeters + 1 floor sub
+  const {w,l,h}=room;
+  sps=[
+    {x:0.5,y:0.5,h:EAR,v:1,sub:false,ch:'L',band:'Full'},
+    {x:w-0.5,y:0.5,h:EAR,v:1,sub:false,ch:'R',band:'Full'},
+    {x:0.5,y:l-0.5,h:EAR,v:0.7,sub:false,ch:'L',band:'Vocal'},
+    {x:w-0.5,y:l-0.5,h:EAR,v:0.7,sub:false,ch:'R',band:'Vocal'},
+    {x:0.5,y:0.5,h:h-0.3,v:0.6,sub:false,ch:'L',band:'Tweeter'},
+    {x:w-0.5,y:0.5,h:h-0.3,v:0.6,sub:false,ch:'R',band:'Tweeter'},
+    {x:0.5,y:l-0.5,h:h-0.3,v:0.6,sub:false,ch:'L',band:'Tweeter'},
+    {x:w-0.5,y:l-0.5,h:h-0.3,v:0.6,sub:false,ch:'R',band:'Tweeter'},
+    {x:w/2,y:0.5,h:0.3,v:1.5,sub:true,ch:'M',band:'Full'},
+  ];selIdx=0;if(playing.length)seekTo(curPos());showSel();draw();say('8-corner rig placed');};
+$('roomAmt').oninput=e=>{if(wet)wet.gain.value=+e.target.value;};
+$('openStems').onclick=()=>location.href='stems.html';
+$('mapStems').onclick=()=>{sps.forEach(s=>{ // real stems to real places; drums free to assign by hand
+  if(s.sub)s.stem='bass';else if(s.band==='Tweeter')s.stem='other';
+  else if(s.y<room.l/2)s.stem='other';else s.stem='vocals';});
+  if(playing.length)seekTo(curPos());showSel();draw();say('mapped: fronts/other, rears/vocals, sub/bass — assign drums manually');};
+function resample441(d,rate){if(rate===44100)return d;const o=new Float32Array(Math.round(d.length*rate/44100));
+  for(let i=0;i<o.length;i++){const p=i*44100/rate,j=Math.floor(p),f=p-j;o[i]=d[j]*(1-f)+(d[j+1]||0)*f;}return o;}
+async function loadStemsFromCache(){try{
+  if(!('indexedDB' in window))return;
+  const db=await new Promise((res,rej)=>{const r=indexedDB.open('stage',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('stems');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
+  const rec=await new Promise((res,rej)=>{const t=db.transaction('stems').objectStore('stems').get('set1');
+    t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error);});
+  if(!rec||!rec.vocals)return;
+  AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  for(const k of['vocals','drums','bass','other']){if(rec[k]&&rec[k].l){
+    const b=AC.createBuffer(2,rec[k].l.length,AC.sampleRate);
+    b.getChannelData(0).set(resample441(rec[k].l,AC.sampleRate));
+    b.getChannelData(1).set(resample441(rec[k].r,AC.sampleRate));stemBufs[k]=b;}}
+  stemNames=Object.keys(stemBufs);
+  if(stemNames.length){$('mapStems').style.display='';say('stems ready ('+(rec.name||'track')+'): '+stemNames.join(', ')+' — assign per speaker or Map stems');showSel();}
+}catch(e){}}
+$('air').onchange=()=>syncAudioSafe();
+$('furn').onchange=furnitureChanged;
+$('addBed').onclick=()=>addFurniture('Bed');$('addSofa').onclick=()=>addFurniture('Sofa');$('addWardrobe').onclick=()=>addFurniture('Wardrobe');
+$('hpdev').onchange=()=>{if(playing.length)seekTo(curPos());
+  if($('hpdev').value==='pro3')say('AirPods Pro 3: no numerical correction verified here; EQ bypassed. Pro 2 correction is not interchangeable.');};
+function syncAudioSafe(){try{updateLis();}catch(e){}}
+$('mvol').oninput=e=>{if(master)master.gain.value=+e.target.value;};
+function fmt(t){t=Math.max(0,Math.floor(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
+function dur(){if(buf)return buf.duration;const k=Object.keys(stemBufs)[0];return k?stemBufs[k].duration:0;}
+function curPos(){const D=dur();if(!D)return 0;if(!playing.length)return playOffset;return (playOffset+AC.currentTime-playStart)%D;}
+function updTime(){const D=dur();if(!D){$('time').textContent='0:00/0:00';return;}
+  $('time').textContent=fmt(curPos())+'/'+fmt(D);
+  if(playing.length)$('seek').value=Math.round(curPos()/D*1000);
+  try{ // meter bars: graph's actual L/R output, updates with the clock
+    const bars=[$('mL'),$('mR')],ans=[anL,anR];
+    for(let i=0;i<2;i++){let h=2;
+      if(playing.length&&ans[i]&&ans[i].getByteTimeDomainData){
+        const a=new Uint8Array(ans[i].fftSize);ans[i].getByteTimeDomainData(a);
+        let s=0;for(let j=0;j<a.length;j+=2){const v=(a[j]-128)/128;s+=v*v;}
+        h=2+Math.min(20,Math.sqrt(s/(a.length/2))*60);}
+      if(bars[i])bars[i].style.height=h+'px';}
+  }catch(e){}}
+setInterval(updTime,500);
+function seekTo(t){const D=dur();if(!D)return;t=((t%D)+D)%D;
+  if(playing.length){stopPb();startPb(t);}else{playOffset=t;$('seek').value=Math.round(t/D*1000);updTime();}}
+$('seek').onchange=e=>{const D=dur();if(D)seekTo(e.target.value/1000*D);};
+$('back').onclick=()=>seekTo(curPos()-10);$('fwd').onclick=()=>seekTo(curPos()+10);
+$('bal').oninput=e=>{if(balN)balN.pan.value=+e.target.value;};
+$('width').oninput=()=>syncAudioSafe();
+$('align').onchange=()=>syncAudioSafe();
+$('swap').onchange=()=>{SWAP=$('swap').checked;if(playing.length)seekTo(curPos());};
+$('trimL').oninput=e=>{TRIM.l=+e.target.value;if(trimL)trimL.gain.setTargetAtTime(TRIM.l,AC.currentTime,0.02);};
+$('trimR').oninput=e=>{TRIM.r=+e.target.value;if(trimR)trimR.gain.setTargetAtTime(TRIM.r,AC.currentTime,0.02);};
+$('hq').onchange=()=>{if(playing.length)seekTo(curPos());}; // imaging engine rebuild
+$('walls').onchange=()=>{if(playing.length)seekTo(curPos());}; // taps rebuild
+$('wallAbs').oninput=()=>syncAudioSafe(); // tap gains follow live
+function beep(side){
+  AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume();
+  const o=AC.createOscillator(),g=AC.createGain(),p=AC.createStereoPanner();
+  o.frequency.value=side==='L'?440:880;p.pan.value=side==='L'?-1:1;
+  o.connect(g);g.connect(p);p.connect(AC.destination);o.start();o.stop(AC.currentTime+0.4);
+}
+$('tL').onclick=()=>beep('L');$('tR').onclick=()=>beep('R');
+// ponytail: open catalogs only (YT/Spotify lock audio in iframe/DRM, unreachable from WebAudio).
+const say=t=>$('stat').textContent=t;
+function addRes(label,loader){const li=document.createElement('li');li.textContent=label+' ';
+  const b=document.createElement('button');b.textContent='Load';b.onclick=loader;li.append(b);$('res').append(li);}
+async function loadRemote(url,title){
+  try{stopPbSafe();say('connecting…');
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();await AC.resume();
+    const r=await fetch(url);if(!r.ok)throw new Error('http '+r.status);
+    say('downloading…');
+    const ab=await r.arrayBuffer();
+    say('decoding '+((ab.byteLength/1048576).toFixed(1))+'MB…');
+    buf=await AC.decodeAudioData(ab);
+    srcMono=buf.numberOfChannels<2;
+    playOffset=0;updTime();say('loaded: '+title+' ('+buf.numberOfChannels+'ch'+(srcMono?', mono→dual-mono':' ('+audit(buf)+')')+') — press Play');
+  }catch(e){say('failed ('+((e&&e.message)||'CORS/network')+') — try another track, paste a link, or upload');}}
+function stopPbSafe(){try{if(playing.length)stopPb();}catch(e){}}
+$('loadUrl').onclick=()=>{const u=$('url').value.trim();if(u)loadRemote(u,u.split('/').pop());};
+(function probe(){try{
+  const C=window.AudioContext||window.webkitAudioContext;if(!C){say('this browser has no Web Audio');return;}
+  const t=new C();
+  const missing=['createChannelMerger','createStereoPanner','createChannelSplitter','createConvolver','createDelay','createDynamicsCompressor'].filter(f=>typeof t[f]!=='function');
+  const px=!!(t.listener&&t.listener.positionX);
+  if(missing.length||!px)say('compat note — missing: '+(missing.join(', ')||'(none)')+(px?'':' + legacy listener API'));
+  if(t.close)t.close();
+}catch(e){}})();
+const AUH=['https://api.audius.co','https://discoveryprovider.audius.co']; // api host now gates keys; legacy still open
+$('search').onclick=async()=>{
+  $('res').innerHTML='';const q=$('q').value.trim();if(!q)return;
+  try{say('searching…');
+    if($('prov').value==='audius'){
+      let found=null,err='';
+      for(const h of AUH){try{
+        const r=await fetch(h+'/v1/tracks/search?query='+encodeURIComponent(q)+'&limit=8&app_name=STAGE_TEST');
+        if(!r.ok)throw new Error('http '+r.status);
+        const j=await r.json();found={h,list:j.data||[]};break;
+      }catch(e){err=(e&&e.message)||'net';}}
+      if(!found){say('audius blocked ('+err+') — try Archive.org');return;}
+      found.list.forEach(t=>addRes((t.title||'?')+' — '+((t.user&&t.user.name)||''),
+        ()=>loadRemote(found.h+'/v1/tracks/'+t.id+'/stream?app_name=STAGE_TEST',t.title)));
+      say(found.list.length?found.list.length+' found':'nothing found');
+    }else{
+      const r=await fetch('https://archive.org/advancedsearch.php?q='+encodeURIComponent(q+' AND mediatype:audio')+'&fl[]=identifier&fl[]=title&fl[]=creator&rows=8&output=json');
+      if(!r.ok)throw new Error('http '+r.status);
+      const j=await r.json();
+      (j.response.docs||[]).forEach(d=>addRes((d.title||d.identifier)+' — '+(d.creator||''),
+        async()=>{say('resolving…');
+          const m=await (await fetch('https://archive.org/metadata/'+d.identifier)).json();
+          const cands=(m.files||[]).filter(f=>/\.(mp3|ogg|m4a|opus)$/i.test(f.name||''));
+          cands.sort((a,b)=>(a.size||9e18)-(b.size||9e18)); // smallest first: faster + mobile-safe
+          const f=cands[0];
+          if(!f){say('no playable file in '+d.identifier);return;}
+          loadRemote('https://archive.org/download/'+d.identifier+'/'+encodeURIComponent(f.name),d.title||d.identifier);}));
+      say((j.response.docs||[]).length+' found — pick one, smallest file loads');
+    }
+  }catch(e){say('search failed ('+((e&&e.message)||'network')+') — upload a file instead');}
+};
+function manualTakeover(){if(listener.useSensor){listener.useSensor=false;$('uni').checked=true;}}
+$('yaw').oninput=e=>{manualTakeover();listener.yaw=+e.target.value*Math.PI/180;updateLis();draw();};
+$('look').oninput=e=>{manualTakeover();listener.pitch=+e.target.value*Math.PI/180;updateLis();draw();};
+$('uni').onchange=e=>{listener.useSensor=!e.target.checked;};
+$('center').onclick=()=>{listener.off=listener.sYaw;listener.poff=listener.sPitch;
+  listener.yaw=0;listener.pitch=0;$('yaw').value=0;$('look').value=0;updateLis();draw();};
+// Apple-style world lock: compass+gyro yaw (+tilt pitch) rotates YOU, stage stays. Web can't read
+// the AirPods gyro (Apple private), so the phone is the sensor — pocket/hand while you turn.
+function angLerp(a,b,t){let d=(b-a)%(Math.PI*2);if(d>Math.PI)d-=Math.PI*2;if(d<-Math.PI)d+=Math.PI*2;return a+d*t;}
+let trackOn=false;
+$('motion').onclick=async()=>{
+  try{ if(typeof DeviceOrientationEvent!=='undefined'&&DeviceOrientationEvent.requestPermission) await DeviceOrientationEvent.requestPermission(); }catch(e){}
+  listener.useSensor=true;$('uni').checked=false;
+  const handler=e=>{
+    if(e.alpha==null&&e.webkitCompassHeading==null)return;
+    const y=(e.webkitCompassHeading!=null&&!isNaN(e.webkitCompassHeading))?e.webkitCompassHeading*Math.PI/180:(360-e.alpha)*Math.PI/180;
+    const p=e.beta!=null?e.beta*Math.PI/180:0;
+    listener.sYaw=y;listener.sPitch=p;
+    const s=+$('sens').value||1;
+    listener.yaw=angLerp(listener.yaw,(y-listener.off)*s,0.35); // smoothed: no jitter, Apple-like glide
+    const pr=Math.max(-1,Math.min(1,(p-listener.poff)*s));
+    listener.pitch+=(pr-listener.pitch)*0.35;
+    if(listener.useSensor){syncAudio();draw();}
+  };
+  if(!trackOn){trackOn=true;
+    if('ondeviceorientationabsolute' in window)window.addEventListener('deviceorientationabsolute',handler);
+    else window.addEventListener('deviceorientation',handler);}
+  say('head-track on: turn — stage stays fixed. Center re-zeroes.');
+};
+
+function impulse(dur,decay){
+  const r=AC.sampleRate*dur,b=AC.createBuffer(2,r,AC.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);
+    for(let i=0;i<r;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/r,decay);}
+  return b;
+}
+function dist(a,b2){const ah=('h' in a)?a.h:EAR,bh=('h' in b2)?b2.h:EAR;
+  return Math.hypot(a.x-b2.x,a.y-b2.y,ah-bh);}
+// head-local direction of a speaker (+chain offset): az 0=ahead +=right, el +=up. (f=forward, r=right)
+function headLocal(s,off){
+  const dx=s.x+(off||0)-listener.x, dy=(s.h??EAR)-EAR, dz=s.y-listener.y;
+  const y=listener.yaw;
+  const lx=dx*Math.cos(y)-dz*Math.sin(y), lz=dx*Math.sin(y)+dz*Math.cos(y);
+  return {az:Math.atan2(lx,-lz), el:Math.atan2(dy,Math.hypot(lx,lz)), d:Math.hypot(dx,dy,dz)};
+}
+// parametric pinna+head render (Brown&Duda structural model family):
+// Woodworth ITD + van Opstal ILD + head-shadow lowpass + Blauert-band elevation EQ + near-field parallax.
+function setPreciseDir(ch,az,el,d){
+  const t=AC.currentTime;
+  for(const side of[-1,1]){
+    const E=side<0?ch.eL:ch.eR;
+    const onSide=Math.sin(az)*side>0;
+    const a=Math.min(Math.abs(az),Math.PI);
+    let itd=0,ild=0;
+    if(!onSide){
+      const tt=a>Math.PI/2?(Math.sin(a)+Math.PI-a):(a+Math.sin(a));
+      itd=0.0875/343*tt;
+      ild=0.18*Math.sqrt(8000)*Math.sin(a);
+      if(d<1)ild+=(1-d)*10*Math.sin(a);
+    }
+    E.d.delayTime.setTargetAtTime(itd,t,0.02);
+    E.e.gain.setTargetAtTime(Math.pow(10,-ild/20),t,0.02);
+    E.f.frequency.setTargetAtTime(onSide?19000:Math.max(2500,19000-16000*Math.sin(a)),t,0.02);
+  }
+  const se=Math.max(-1,Math.min(1,Math.sin(el)));
+  if(se>=0){ch.eq1.frequency.value=8000;ch.eq1.gain.setTargetAtTime(2+6*se,t,0.03);}
+  else{ch.eq1.frequency.value=6000;ch.eq1.gain.setTargetAtTime(5*se,t,0.03);}
+  const behind=Math.cos(az)<0?-Math.cos(az):0;
+  ch.eq2.gain.setTargetAtTime(5*behind,t,0.03);
+}
+// image-source early reflections: 6 first-order wall bounces land in the 20-80ms zone that
+// research says externalizes sound. Fed PRE distance-gain (constant room level) so DRR varies
+// with distance like a real room — our old post-gain send kept DRR flat (distance felt dead).
+function earlyTaps(s,feed,useHQ){
+  const W=room.w,L=room.l,H=room.h,sh=(s.h??EAR),refl=1-(+$('wallAbs').value||0.5);
+  const imgs=[{x:-s.x,y:s.y,h:sh},{x:2*W-s.x,y:s.y,h:sh},{x:s.x,y:-s.y,h:sh},{x:s.x,y:2*L-s.y,h:sh},{x:s.x,y:s.y,h:-sh},{x:s.x,y:s.y,h:2*H-sh}];
+  return imgs.map(im=>{
+    const path=Math.hypot(im.x-listener.x,im.y-listener.y,im.h-EAR);
+    const dl=AC.createDelay(0.12);dl.delayTime.value=Math.min(0.1,path/343);
+    const g=AC.createGain();g.gain.value=refl/(1+0.6*path);
+    const p=AC.createPanner();p.panningModel=useHQ?'equalpower':'HRTF';p.distanceModel='inverse';p.rolloffFactor=0;
+    p.positionX.value=im.x;p.positionY.value=im.h;p.positionZ.value=im.y;
+    feed.connect(dl);dl.connect(g);g.connect(p);p.connect(master);
+    return {dl,g,p};
+  });
+}
+function updTaps(o){
+  if(!o.taps)return;const s=o.s,W=room.w,L=room.l,H=room.h,sh=(s.h??EAR);
+  const refl=1-(+$('wallAbs').value||0.5),t=AC.currentTime;
+  const imgs=[{x:-s.x,y:s.y,h:sh},{x:2*W-s.x,y:s.y,h:sh},{x:s.x,y:-s.y,h:sh},{x:s.x,y:2*L-s.y,h:sh},{x:s.x,y:s.y,h:-sh},{x:s.x,y:s.y,h:2*H-sh}];
+  o.taps.forEach((tp,i)=>{const im=imgs[i];
+    const path=Math.hypot(im.x-listener.x,im.y-listener.y,im.h-EAR);
+    tp.dl.delayTime.setTargetAtTime(Math.min(0.1,path/343),t,0.03);
+    tp.g.gain.setTargetAtTime(refl/(1+0.6*path),t,0.03); // room scales with rig: DRR stays sane
+    tp.p.positionX.value=im.x;tp.p.positionY.value=im.h;tp.p.positionZ.value=im.y;});
+}
+// reality curve: loud up close, clearly gone far. d in meters -> gain (~11dB near-to-far).
+function proxGain(d){return Math.min(3.5,1.4/(1+0.45*Math.max(0,d-0.4)));}
+function stopPb(){const pos=curPosSafe();playing.forEach(s=>{try{s.stop();s.disconnect();}catch(e){}});playing=[];live=[];anL=anR=null;
+  if(master)master.disconnect();playOffset=pos;$('play').textContent='Play';}
+function curPosSafe(){try{return curPos();}catch(e){return playOffset;}}
+function startPb(offset){
+  master=AC.createGain();master.gain.value=+$('mvol').value;
+  comp=AC.createDynamicsCompressor(); // gentle glue: stock comp crushed big rigs into distortion
+  comp.threshold.value=-12;comp.knee.value=20;comp.ratio.value=4;comp.attack.value=0.004;comp.release.value=0.25;
+  balN=AC.createStereoPanner();balN.pan.value=+$('bal').value;
+  // per-ear trim: split → trimL/trimR → merge (correct channel handling, works in every mode)
+  const tsp=AC.createChannelSplitter(2),tmg=AC.createChannelMerger(2);
+  trimL=AC.createGain();trimR=AC.createGain();trimL.gain.value=TRIM.l;trimR.gain.value=TRIM.r;
+  master.connect(comp);comp.connect(balN);balN.connect(tsp);
+  tsp.connect(trimL,0);tsp.connect(trimR,1);trimL.connect(tmg,0,0);trimR.connect(tmg,0,1);
+  // headphone correction chain (after trim, before out): preamp + profile biquads
+  let output=tmg;hpNodes=[];
+  const prof=HP_PROFILES[$('hpdev').value]; // pro3 has no verified profile: falls through to bypass
+  if(prof){const pre=AC.createGain();pre.gain.value=Math.pow(10,prof.pre/20);output.connect(pre);output=pre;hpNodes.push(pre);
+    prof.f.forEach(([fc,ty,g2,q])=>{const bq=AC.createBiquadFilter();bq.type=ty;bq.frequency.value=Math.min(fc,AC.sampleRate*0.49);bq.Q.value=q;bq.gain.value=g2;output.connect(bq);output=bq;hpNodes.push(bq);});}
+  const ceiling=AC.createWaveShaper(),curve=new Float32Array(4097);
+  for(let i=0;i<curve.length;i++){const v=i*2/(curve.length-1)-1;curve[i]=Math.max(-0.95,Math.min(0.95,v));}
+  ceiling.curve=curve;output.connect(ceiling);output=ceiling;output.connect(AC.destination);
+  try{ // live output meters: visible proof of what each ear is actually fed
+    const msp=AC.createChannelSplitter(2);
+    anL=AC.createAnalyser();anR=AC.createAnalyser();anL.fftSize=512;anR.fftSize=512;
+    output.connect(msp);msp.connect(anL,0);msp.connect(anR,1);
+  }catch(e){anL=anR=null;}
+  verb=AC.createConvolver();const F=furnish(); // generic material-class approximation, not measured for user's furniture
+  verb.buffer=impulse(0.35+Math.max(room.w,room.l)*0.06,3.2/F.rt); // short late tail; early pattern carries the room
+  const wetLp=AC.createBiquadFilter();wetLp.type='lowpass';wetLp.frequency.value=F.lp; // late tail carries DRR, not detail
+  wet=AC.createGain();wet.gain.value=+$('roomAmt').value;
+  verb.connect(wetLp);wetLp.connect(wet);wet.connect(master);
+  live=[];
+  // normalize: N chains of full-scale mix summed = clipping. 1/sqrt(N) keeps level constant.
+  const norm=1/Math.sqrt(sps.reduce((n,s)=>n+(s.sub?1:((s.ch||'M')==='M'?2:1)),0)||1);
+  live.norm=norm;
+  const maxD0=Math.max(0.1,...sps.map(s=>dist(s,listener))); // alignment reference: farthest box
+  const useHQ=true; // taps render equalpower always — direction-only, like the direct path
+  const usePrecise=$('hq').checked; // classic panner engine by default; precise only when ticked
+  sps.forEach(s=>{
+    const b=(s.stem&&stemBufs[s.stem])||buf;if(!b)return; // box has no audio (mix gone after reload?) — skip, don't crash
+    const src=AC.createBufferSource();src.buffer=b;src.loop=true;
+    // band filter BEFORE split (biquad keeps L/R separate) + mono-feed was killing the record's own L/R movement,
+    // so M behaves like a real stereo box: L and R through two panners ±0.35m around the cabinet.
+    const bf=AC.createBiquadFilter();const setBand=()=>{const b=s.sub?'Sub':(s.band||'Full');
+      if(b==='Tweeter'){bf.type='highpass';bf.frequency.value=2500;}
+      else if(b==='Bass'){bf.type='lowpass';bf.frequency.value=300;}
+      else if(b==='Vocal'){bf.type='bandpass';bf.frequency.value=1200;bf.Q.value=0.8;}
+      else if(b==='Bright'){bf.type='highpass';bf.frequency.value=5000;}
+      else{bf.type='allpass';bf.frequency.value=800;}};
+    setBand();
+    const sp=AC.createChannelSplitter(2),gL=AC.createGain(),gR=AC.createGain();
+    const xLR=AC.createGain(),xRL=AC.createGain(),oL=AC.createGain(),oR=AC.createGain();
+    src.connect(bf);bf.connect(sp);sp.connect(gL,0);sp.connect(gR,b.numberOfChannels<2?0:1);
+    gL.connect(oL);gR.connect(oR);gL.connect(xRL);xRL.connect(oR);gR.connect(xLR);xLR.connect(oL);
+    // M/S-style width (Blumlein matrix idea): k=1-w crossfeed. w=1 record, 0 mono, 2 hyper-wide.
+    const setW=()=>{const k=1-(+$('width').value||1);xLR.gain.value=k;xRL.gain.value=k;}; // mono file: ch0 feeds both
+    const flip=m=>m==='L'?'R':m==='R'?'L':m;
+    const chMode=()=>{const m0=s.sub?'SUB':(s.ch||'M');return (SWAP&&!s.sub)?flip(m0):m0;};
+    const setCh=()=>{const m=chMode();
+      gL.gain.value=m==='L'?1:m==='R'?0:1; gR.gain.value=m==='R'?1:m==='L'?0:1;
+      if(s.sub){gL.gain.value=0.7;gR.gain.value=0.7;}};
+    setCh();setW();
+    const mkChain=(inputs,off)=>{
+      const g=AC.createGain();g.gain.value=s.v*norm*(s.mute?0:1);
+      inputs.forEach(n=>n.connect(g));
+      const occ=AC.createBiquadFilter();occ.type='lowpass';occ.frequency.value=blocked(s,off)?1800:20000;
+      const lp=AC.createBiquadFilter();lp.type='lowpass';
+      const d0=dist(s,listener);
+      const airOn=$('air').checked;
+      lp.frequency.value=s.sub?120:(airOn?Math.max(12000,20000/(1+d0*0.08)):20000); // off = clearest
+      const dg=AC.createGain();dg.gain.value=proxGain(d0)*(s.sub?1.5:1); // manual proximity: panner stays direction-only
+      // PA-style arrival alignment: all directs land together (coherent sum, no comb teeth).
+      // Reflections keep physical timing — only the direct path aligns.
+      const dl=AC.createDelay(0.12);
+      dl.delayTime.value=$('align').checked?Math.min(0.09,(maxD0-d0)/343):Math.min(0.05,d0/343);
+      g.connect(lp);lp.connect(occ);occ.connect(dg);dg.connect(dl);
+      const roomTap=AC.createGain();roomTap.gain.value=1;lp.connect(roomTap);
+      if(usePrecise){
+        const eq1=AC.createBiquadFilter();eq1.type='peaking';eq1.Q.value=1.2;
+        const eq2=AC.createBiquadFilter();eq2.type='peaking';eq2.frequency.value=1200;eq2.Q.value=1;
+        // ear outputs via hard-left/right panners: every browser has PannerNode, identical image, zero compat risk.
+        const hardPan=v=>{const p=AC.createStereoPanner();p.pan.value=v;return p;};
+        const mkEar=chn=>{const d=AC.createDelay(0.01),e=AC.createGain(),f=AC.createBiquadFilter();
+          f.type='lowpass';f.frequency.value=19000;d.connect(e);e.connect(f);
+          const p=hardPan(chn?1:-1);f.connect(p);p.connect(master);
+          return{d,e,f};};
+        const eL=mkEar(0),eR=mkEar(1);
+        dl.connect(eq1);eq1.connect(eq2);eq2.connect(eL.d);eq2.connect(eR.d);
+        return {mode:'p',g,lp,dg,dl,eq1,eq2,eL,eR,off,roomTap,occ};
+      }
+      let p=null;
+      p=AC.createPanner();p.panningModel='equalpower';p.distanceModel='inverse';p.rolloffFactor=0; // classic engine: direction only, dg does loudness
+      p.positionX.value=s.x+off;p.positionY.value=(s.h??EAR);p.positionZ.value=s.y;
+      dl.connect(p);p.connect(master);
+      return {mode:'h',g,lp,dg,dl,p,off,roomTap,occ,s};
+    };
+    const m=chMode();
+    const chains=m==='M'?[mkChain([oL],-0.35),mkChain([oR],0.35)]:m==='L'?[mkChain([oL],0)]:m==='R'?[mkChain([oR],0)]:[mkChain([oL,oR],0)];
+    const feed=AC.createGain();chains.forEach(ch=>ch.roomTap.connect(feed));
+    const taps=$('walls').checked?earlyTaps(s,feed,useHQ):null;
+    if(!s.sub){const rv=AC.createGain();rv.gain.value=0.5*(1.28-F.abs);feed.connect(rv);rv.connect(verb);}    src.start(0,offset%src.buffer.duration);playing.push(src);live.push({s,gL,gR,bf,chains,taps,setCh,setBand,setW});
+  });
+  playOffset=offset;playStart=AC.currentTime;
+  updateLis();
+  $('play').textContent='Stop';
+}
+async function togglePlay(){
+  AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  await AC.resume();
+  if(playing.length){stopPb();return;}
+  if(!buf&&!Object.keys(stemBufs).length){alert('upload an mp3 first (mix does not survive reload — re-pick your file)');return;}
+  try{startPb(playOffset||0);}
+  catch(e){
+    // precise branch hit something this browser lacks: fall back to the PannerNode engine (previously working) automatically.
+    try{try{master.disconnect();}catch(_){}stopPb();$('hq').checked=false;startPb(playOffset||0);
+      say('precise engine blocked ('+((e&&e.message)||e)+') — playing classic mode instead');}
+    catch(e2){say('play failed: '+((e2&&e2.message)||e2));}
+  }
+}
+window.addEventListener('error',e=>{try{const m=(e&&e.message)||'';if(m)say('error: '+m);}catch(_){}});
+$('play').onclick=togglePlay;
+
+function updateLis(){
+  if(!AC||!AC.listener)return;
+  const y=listener.yaw,p=listener.pitch||0;
+  const fx=-Math.sin(y)*Math.cos(p),fy=Math.sin(p),fz=-Math.cos(y)*Math.cos(p);
+  const l=AC.listener;
+  if(l.positionX){l.positionX.value=listener.x;l.positionY.value=EAR;l.positionZ.value=listener.y;
+    l.forwardX.value=fx;l.forwardY.value=fy;l.forwardZ.value=fz;l.upX.value=0;l.upY.value=1;l.upZ.value=0;}
+  else{l.setPosition(listener.x,EAR,listener.y);l.setOrientation(fx,fy,fz,0,1,0);}
+  live.forEach(o=>{
+    if(!o.s)return;
+    const d=dist(o.s,listener);
+    const airOn=$('air').checked, t=AC.currentTime, al=$('align').checked;
+    const maxD=Math.max(0.1,...live.filter(q=>q.s).map(q=>dist(q.s,listener)));
+    o.chains.forEach(ch=>{
+      ch.dl.delayTime.setTargetAtTime(al?Math.min(0.09,(maxD-d)/343):Math.min(0.05,d/343),t,0.03);
+      ch.lp.frequency.value=o.s.sub?120:(airOn?Math.max(12000,20000/(1+d*0.08)):20000);
+      ch.g.gain.setTargetAtTime(o.s.v*(live.norm||1)*(o.s.mute?0:1),t,0.03); // smoothed: no zipper crackle while dragging
+      ch.dg.gain.setTargetAtTime(proxGain(d)*(o.s.sub?1.5:1),t,0.03);
+      if(ch.occ)ch.occ.frequency.setTargetAtTime(blocked(ch.s||o.s,ch.off||0)?1800:20000,t,0.03);
+      if(ch.mode==='p'){const hl=headLocal(o.s,ch.off||0);setPreciseDir(ch,hl.az,hl.el,hl.d);}
+      else if(ch.p){ch.p.positionX.value=o.s.x+ch.off;ch.p.positionY.value=(o.s.h??EAR);ch.p.positionZ.value=o.s.y;}
+    });
+    updTaps(o);
+    o.setCh();o.setBand();o.setW();
+  });
+}
+
+// --- editor: oblique 3D room view (invertible: floor picking stays exact) ---
+const S3=()=>Math.min((c.width-50)/(room.w+0.5*room.l),(c.height-40)/(0.5*room.l+0.9*room.h+0.5));
+const CX3=()=>c.width/2;
+const CY3=()=>c.height/2+0.45*room.h*S3();
+function P3(x,y,z){const S=S3();return [CX3()+(x-room.w/2)*S+0.5*(y-room.l/2)*S, CY3()+0.5*(y-room.l/2)*S-z*0.9*S];}
+function toPx(p){return P3(p.x,p.y,p.h??0);}
+function toM(px,py){const S=S3();const v=(py-CY3())/(0.5*S);
+  return {x:room.w/2+(px-CX3())/S-0.5*v, y:room.l/2+v};}
+const col=s=>s.sub?'#f59e0b':(s.band==='Tweeter'?'#22d3ee':(s.band==='Vocal'?'#c084fc':(s.band==='Bass'?'#2dd4bf':(s.band==='Bright'?'#facc15':'#3b82f6'))));
+function draw(){
+  x2.clearRect(0,0,c.width,c.height);
+  const S=S3(),v=0.5*S;
+  // back + side walls
+  const wall=(a,b2,cc,d)=>{x2.beginPath();x2.moveTo(...a);x2.lineTo(...b2);x2.lineTo(cc[0],cc[1]-0.9*S*room.h);x2.lineTo(d[0],d[1]-0.9*S*room.h);x2.closePath();
+    const g=x2.createLinearGradient(a[0],a[1],cc[0],cc[1]);g.addColorStop(0,'rgba(20,28,40,.55)');g.addColorStop(1,'rgba(10,14,22,.75)');x2.fillStyle=g;x2.fill();};
+  wall(P3(0,0,0),P3(room.w,0,0),P3(room.w,0,0),P3(0,0,0));
+  wall(P3(0,0,0),P3(0,room.l,0),P3(0,room.l,0),P3(0,0,0));
+  // floor
+  x2.beginPath();x2.moveTo(...P3(0,0,0));x2.lineTo(...P3(room.w,0,0));x2.lineTo(...P3(room.w,room.l,0));x2.lineTo(...P3(0,room.l,0));x2.closePath();
+  const fg=x2.createLinearGradient(0,CY3()-v*room.l/2,0,c.height);fg.addColorStop(0,'#141c29');fg.addColorStop(1,'#1c2635');x2.fillStyle=fg;x2.fill();
+  x2.strokeStyle='#33445a';x2.lineWidth=1.5;x2.stroke();
+  x2.strokeStyle='rgba(70,90,120,.28)';x2.lineWidth=1;
+  for(let gx=1;gx<room.w;gx++){x2.beginPath();x2.moveTo(...P3(gx,0,0.005));x2.lineTo(...P3(gx,room.l,0.005));x2.stroke();}
+  for(let gy=1;gy<room.l;gy++){x2.beginPath();x2.moveTo(...P3(0,gy,0.005));x2.lineTo(...P3(room.w,gy,0.005));x2.stroke();}
+  x2.fillStyle='#8fa3bd';x2.font='bold 11px system-ui';
+  const st=P3(0,0,room.h);x2.fillText('FRONT WALL',st[0]+8,st[1]+18);
+  furniture.slice().sort((a,b)=>a.y-b.y).forEach(o=>{
+    const corners=[[o.x,o.y],[o.x+o.w,o.y],[o.x+o.w,o.y+o.d],[o.x,o.y+o.d]];
+    for(const [ids,zs,shade] of [[[0,1,1,0],[0,0,o.h,o.h],'#384653'],[[1,2,2,1],[0,0,o.h,o.h],'#293642'],[[0,1,2,3],[o.h,o.h,o.h,o.h],o.type==='Wardrobe'?'#80654b':'#496b72']]){
+      x2.beginPath();ids.forEach((id,i)=>{const p=P3(...corners[id],zs[i]);if(i)x2.lineTo(...p);else x2.moveTo(...p);});x2.closePath();x2.fillStyle=shade;x2.fill();x2.strokeStyle='#91a8b2';x2.stroke();
+    }
+    const p=P3(o.x+o.w/2,o.y+o.d/2,o.h);x2.fillStyle='#fff';x2.font='14px system-ui';x2.fillText(o.type,p[0]-25,p[1]);
+  });
+  // speakers painter-sorted back→front
+  [...sps.keys()].sort((a,b2)=>sps[a].y-sps[b2].y).forEach(i=>{
+    const s=sps[i],r=s.sub?0.42:0.28,[bx,by]=P3(s.x,s.y,0),[tx,ty]=P3(s.x,s.y,s.h??EAR),cc=col(s);
+    x2.globalAlpha=s.mute?0.3:1;
+    x2.beginPath();x2.ellipse(bx,by,r*S,r*S*0.5,0,0,7);x2.fillStyle='rgba(0,0,0,.4)';x2.fill(); // shadow
+    if(Math.abs((s.h??EAR))>0.05){x2.strokeStyle='rgba(140,160,190,.6)';x2.lineWidth=2;
+      x2.beginPath();x2.moveTo(bx,by);x2.lineTo(tx,ty);x2.stroke();} // stand
+    const w2=r*S,h2=0.9*S,d2=r*S*0.7; // cabinet box: front, top, side
+    x2.beginPath();x2.moveTo(tx-w2,ty-h2);x2.lineTo(tx+w2,ty-h2);x2.lineTo(tx+w2+d2*0.5,ty-h2+d2*0.5);x2.lineTo(tx-w2+d2*0.5,ty-h2+d2*0.5);x2.closePath();
+    x2.fillStyle='#2a3850';x2.fill(); // top
+    x2.beginPath();x2.moveTo(tx-w2,ty-h2);x2.lineTo(tx-w2+d2*0.5,ty-h2+d2*0.5);x2.lineTo(tx-w2+d2*0.5,ty+d2*0.5);x2.lineTo(tx-w2,ty);x2.closePath();
+    x2.fillStyle='#1c2739';x2.fill(); // side
+    x2.beginPath();x2.rect(tx-w2,ty-h2,w2*2,h2); // front
+    const gg=x2.createLinearGradient(tx,ty-h2,tx,ty);gg.addColorStop(0,'#3d4f6e');gg.addColorStop(1,'#232f45');x2.fillStyle=gg;x2.fill();
+    x2.strokeStyle=cc;x2.lineWidth=2;x2.stroke();
+    x2.beginPath();x2.arc(tx,ty-h2/2,w2*0.55,0,7);x2.fillStyle=cc;x2.globalAlpha=(s.mute?0.15:0.85);x2.fill(); // driver glow
+    x2.globalAlpha=s.mute?0.3:1;
+    x2.beginPath();x2.arc(tx,ty-h2/2,w2*0.22,0,7);x2.fillStyle='#0b0f14';x2.fill();
+    if(i===selIdx){x2.lineWidth=2.5;x2.strokeStyle='#fff';x2.beginPath();x2.arc(tx,ty-h2/2,w2*0.9,0,7);x2.stroke();}
+    x2.fillStyle='#c9d6e8';x2.font='bold 11px system-ui';
+    x2.fillText(s.sub?'SUB':(i+1)+(s.ch||''),tx-8,ty+h2*0.9);
+    x2.fillStyle='#7d8ea6';x2.font='10px system-ui';x2.fillText((s.h??EAR).toFixed(1)+'m',tx+w2+4,ty-h2/2+3);
+    x2.globalAlpha=1;});
+  // listener: shadow + cone + body + heading
+  const [lx2,ly2]=P3(listener.x,listener.y,0),a=listener.yaw;
+  const pA=P3(listener.x-Math.sin(a)*1.2-Math.cos(a)*0.7,listener.y-Math.cos(a)*1.2+Math.sin(a)*0.7,0.01);
+  const pB=P3(listener.x-Math.sin(a)*1.2+Math.cos(a)*0.7,listener.y-Math.cos(a)*1.2-Math.sin(a)*0.7,0.01);
+  x2.beginPath();x2.ellipse(lx2,ly2,0.45*S,0.22*S,0,0,7);x2.fillStyle='rgba(0,0,0,.45)';x2.fill();
+  x2.beginPath();x2.moveTo(lx2,ly2);x2.lineTo(...pA);x2.lineTo(...pB);x2.closePath();
+  x2.fillStyle='rgba(34,197,94,.18)';x2.fill();
+  const [hx,hy]=P3(listener.x,listener.y,1.1);
+  x2.beginPath();x2.moveTo(lx2,ly2);x2.lineTo(hx,hy);x2.strokeStyle='rgba(140,160,190,.5)';x2.lineWidth=2;x2.stroke();
+  x2.beginPath();x2.arc(hx,hy,0.24*S,0,7);x2.fillStyle='#22c55e';x2.fill();
+  x2.lineWidth=2;x2.strokeStyle='#fff';x2.stroke();
+  const hd=P3(listener.x-Math.sin(a)*0.9,listener.y-Math.cos(a)*0.9,1.35);
+  x2.beginPath();x2.moveTo(hx,hy);x2.lineTo(...hd);x2.strokeStyle='#fff';x2.lineWidth=2.5;x2.stroke();x2.lineWidth=1;
+}
+let drag=null, moved=false;
+function evtPos(e){const r=c.getBoundingClientRect();
+  return toM((e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height);}
+function pick(e){
+  const r=c.getBoundingClientRect();
+  const px=(e.clientX-r.left)*c.width/r.width,py=(e.clientY-r.top)*c.height/r.height;
+  let best=null,bd=Infinity;
+  sps.forEach((s,i)=>{const [sx,sy]=P3(s.x,s.y,s.h??EAR);
+    const d=Math.hypot(sx-px,sy-0.45*S3()-py);
+    if(Math.abs(sx-px)<Math.max(16,(s.sub?0.42:0.28)*S3()+6)&&Math.abs(sy-0.45*S3()-py)<Math.max(20,0.45*S3()+6)&&d<bd){bd=d;best={t:'s',i};}});
+  const [lx,ly]=P3(listener.x,listener.y,1.1);
+  if(Math.hypot(lx-px,ly-py)<Math.max(18,0.35*S3()))best={t:'l'};
+  return best;
+}
+let syncQueued=false;
+function syncAudio(){if(syncQueued)return;syncQueued=true; // one audio update per frame max
+  requestAnimationFrame(()=>{syncQueued=false;try{
+    if(live.length){live.forEach((o,i)=>{if(sps[i])o.s=sps[i];});updateLis();}
+    else if(AC&&AC.listener)updateLis();
+  }catch(e){if(!window._ae){window._ae=1;say('audio update error: '+((e&&e.message)||e));}}});}
+c.addEventListener('pointerdown',e=>{e.preventDefault();
+  drag=pick(e);moved=false;
+  if(drag){const m=evtPos(e),o=drag.t==='s'?sps[drag.i]:listener;drag.dx=o.x-m.x;drag.dy=o.y-m.y;}
+  if(drag&&drag.t==='s'){selIdx=drag.i;showSel();draw();}
+  try{c.setPointerCapture(e.pointerId);}catch(err){}});
+c.addEventListener('pointermove',e=>{
+  if(!drag)return;e.preventDefault();moved=true;
+  const m=evtPos(e),o=drag.t==='s'?sps[drag.i]:listener;
+  o.x=Math.max(0,Math.min(room.w,m.x+drag.dx));
+  o.y=Math.max(0,Math.min(room.l,m.y+drag.dy));
+  syncAudio();draw();
+});
+c.addEventListener('pointerup',e=>{
+  if(!moved&&!drag){const m=evtPos(e); // click empty floor = teleport listener there
+    m.x=Math.max(0,Math.min(room.w,m.x));m.y=Math.max(0,Math.min(room.l,m.y));
+    listener.x=m.x;listener.y=m.y;syncAudio();draw();}
+  drag=null;});
+c.addEventListener('pointercancel',()=>drag=null);
+window.addEventListener('keydown',e=>{
+  const t=(e.target&&e.target.tagName)||'';
+  if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA')return; // typing in search box etc.
+  const st=0.3;let used=true;
+  if(e.key==='ArrowUp'||e.key==='w')listener.y-=st;
+  else if(e.key==='ArrowDown'||e.key==='s')listener.y+=st;
+  else if(e.key==='ArrowLeft'||e.key==='a')listener.x-=st;
+  else if(e.key==='ArrowRight'||e.key==='d')listener.x+=st;
+  else if((e.key==='Delete'||e.key==='Backspace')&&sps[selIdx]){used=true;
+    sps.splice(selIdx,1);selIdx=0;if(playing.length)seekTo(curPos());showSel();}
+  else used=false;
+  if(used){e.preventDefault();
+    listener.x=Math.max(0,Math.min(room.w,listener.x));listener.y=Math.max(0,Math.min(room.l,listener.y));
+    syncAudio();draw();}
+});
+function showSel(){
+  const s=sps[selIdx];$('sel').replaceChildren();if(!s){$('sel').textContent='Add a speaker to begin.';return;}
+  for(const [key,name,max] of [['x','Speaker X',room.w],['y','Speaker Y',room.l],['h','Speaker height',room.h]]){
+    const label=document.createElement('label'),input=document.createElement('input');label.textContent=name+' (m) ';input.type='number';input.min=0;input.max=max;input.step=0.05;input.value=s[key]??EAR;input.setAttribute('aria-label',name);
+    input.onchange=()=>{const v=input.valueAsNumber;if(Number.isFinite(v))s[key]=Math.max(0,Math.min(max,v));input.value=s[key];syncAudioSafe();draw();};label.append(input);$('sel').append(label);
+  }
+  const lb=document.createElement('label');lb.textContent=`Spk ${s.sub?'SUB':selIdx+1} vol `;
+  const rg=document.createElement('input');rg.type='range';rg.min=0;rg.max=4;rg.step=0.1;rg.value=s.v;
+  rg.oninput=e=>{s.v=+e.target.value;updateLis();};
+  const ch=document.createElement('select');['L','R','M'].forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;if((s.ch||'M')===m)o.selected=true;ch.append(o);});
+  ch.title='which channel this speaker plays';ch.disabled=!!s.sub;
+  ch.onchange=e=>{s.ch=e.target.value;if(playing.length)seekTo(curPos());else updateLis();draw();}; // rebuild: chain count changes
+  const bd=document.createElement('select');['Full','Tweeter','Vocal','Bass','Bright'].forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;if((s.band||'Full')===m)o.selected=true;bd.append(o);});
+  bd.title='speaker type / instrument feel';bd.disabled=!!s.sub;
+  bd.onchange=e=>{s.band=e.target.value;updateLis();draw();};
+  const hl=document.createElement('label');hl.textContent='h ';
+  const hr=document.createElement('input');hr.type='range';hr.min=0;hr.max=room.h;hr.step=0.1;hr.value=(s.h??EAR);hr.style.width='80px';
+  hr.title='height in meters';
+  hr.oninput=e=>{s.h=+e.target.value;updateLis();draw();};
+  const mu=document.createElement('button');mu.textContent=s.mute?'Unmute':'Mute';
+  mu.onclick=()=>{s.mute=!s.mute;updateLis();showSel();draw();};
+  const st=document.createElement('select');['mix',...Object.keys(stemBufs)].forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;if((s.stem||'mix')===n)o.selected=true;st.append(o);});
+  st.title='stem feed (separate in Stems… first)';st.onchange=e=>{s.stem=e.target.value==='mix'?null:e.target.value;if(playing.length)seekTo(curPos());};
+  const pg=document.createElement('button');pg.textContent='Ping';pg.title='beep through THIS speaker only — dead box vs dead channel test';
+  pg.onclick=()=>{if(!playing.length){alert('press Play first');return;}
+    const o=live[selIdx];if(!o||!o.chains.length)return;
+    const t=AC.currentTime,osc=AC.createOscillator(),ev=AC.createGain();
+    osc.frequency.value=660;ev.gain.setValueAtTime(0.0001,t);ev.gain.linearRampToValueAtTime(0.9,t+0.02);ev.gain.exponentialRampToValueAtTime(0.001,t+0.45);
+    osc.connect(ev);ev.connect(o.chains[0].g);osc.start(t);osc.stop(t+0.5);};
+  const del=document.createElement('button');del.textContent='Delete';del.onclick=()=>{sps.splice(selIdx,1);selIdx=0;if(playing.length)seekTo(curPos());showSel();draw();};
+  const hint=document.createElement('span');hint.textContent=' drag in room to move (live while playing). Mute solos the rest.';
+  $('sel').append(lb,rg,ch,bd,hl,hr,st,mu,pg,del,hint);
+}
+listener.x=room.w/2;listener.y=room.l/2;
+showSel();draw();loadStemsFromCache();
+</script>

@@ -1,0 +1,99 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stems — separate track</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui;background:#0e1116;color:#e8ecf1;margin:0;padding:12px;max-width:760px;margin-inline:auto}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center;background:#161c25;border:1px solid #232c39;border-radius:10px;padding:10px 12px}
+button{background:#233043;color:#e8ecf1;border:1px solid #33445a;border-radius:8px;padding:10px 16px;cursor:pointer;min-height:44px;font-size:15px}
+button:hover{background:#2d3f57}
+button:disabled{opacity:.4}
+button#go{background:#14532d;border-color:#1f7a42;font-weight:700}
+#barWrap{background:#0e1319;border-radius:6px;height:14px;overflow:hidden;flex:1 1 100%}
+#bar{background:#38bdf8;height:100%;width:0%}
+#stat{color:#7dd3fc;font-size:13px}
+.stem{display:flex;gap:8px;align-items:center;justify-content:space-between;width:100%}
+a{color:#7dd3fc}
+.hint{font-size:12px;color:#8b98a9}
+</style>
+<h3>Stems — real vocal/drum/bass split (htdemucs, 100% in-browser)</h3>
+<div class="row">
+<input type=file id=f accept="audio/*">
+<button id=go disabled>Separate</button>
+<span id=stat>pick a track first (model ~172MB downloads once, cached)</span>
+<div id=barWrap><div id=bar></div></div>
+</div>
+<div class="row" id=stems></div>
+<div class="row">
+<button id=save disabled>Save to stage</button>
+<a href="index.html">← back to stage</a>
+<span class="hint">Tip: serve over localhost for 3-5× speed. file:// works, single-thread. First run downloads the model.</span>
+</div>
+<script type="importmap">{"imports":{
+"onnxruntime-web":"https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/ort.web.min.mjs",
+"demucs-web":"https://cdn.jsdelivr.net/npm/demucs-web@1.0.2/src/index.js"
+}}</script>
+<script type="module">
+import * as ort from 'onnxruntime-web';
+import {DemucsProcessor,CONSTANTS} from 'demucs-web';
+const $=id=>document.getElementById(id);
+const say=t=>$('stat').textContent=t;
+const bar=p=>$('bar').style.width=(p*100).toFixed(1)+'%';
+let fileBuf=null,fileName='',result=null,AC=null,playing=[];
+$('f').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;fileName=f.name;say('decoding…');
+  AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  const ab=await f.arrayBuffer();
+  const dec=await AC.decodeAudioData(ab);
+  // resample mix to 44100 stereo (model rate)
+  const off=new OfflineAudioContext(2,Math.ceil(dec.duration*44100),44100);
+  const src=off.createBufferSource();src.buffer=dec;src.connect(off.destination);src.start();
+  fileBuf=await off.startRendering();
+  say(fileName+' ready ('+fileBuf.duration.toFixed(0)+'s) — press Separate');$('go').disabled=false;
+};
+$('go').onclick=async()=>{
+  if(!fileBuf)return;$('go').disabled=true;
+  try{
+    say('loading runtime…');
+    ort.env.wasm.numThreads=(window.crossOriginIsolated?(navigator.hardwareConcurrency||4):1);
+    let webgpu=false;
+    if('gpu' in navigator){try{const a=await navigator.gpu.requestAdapter();if(a){webgpu=true;}}catch(e){}}
+    say('loading model (~172MB, once)…');
+    const smallScreen=Math.min(screen.width,screen.height)<700||!webgpu;
+    const proc=new DemucsProcessor({ort,
+      sessionOptions:smallScreen?{enableCpuMemArena:false,enableMemPattern:false}:{},
+      onProgress:({progress})=>{bar(progress);say('separating '+(progress*100).toFixed(0)+'%'+(webgpu?' (GPU)':' (CPU, ~3-5min/song)'));},
+      onDownloadProgress:(l,t)=>{bar(l/t);say('model '+((l/1048576).toFixed(0))+'/'+((t/1048576).toFixed(0))+'MB…');}});
+    await proc.loadModel(CONSTANTS.DEFAULT_MODEL_URL);
+    const t0=Date.now();
+    result=await proc.separate(fileBuf.getChannelData(0),fileBuf.getChannelData(1));
+    say('done in '+(((Date.now()-t0)/1000).toFixed(0))+'s — preview, then Save to stage');
+    bar(1);showStems();$('save').disabled=false;
+  }catch(e){say('failed: '+((e&&e.message)||e));$('go').disabled=false;}
+};
+function mkBuf(st){const b=AC.createBuffer(2,st.left.length,44100);
+  b.getChannelData(0).set(st.left);b.getChannelData(1).set(st.right);return b;}
+function showStems(){
+  $('stems').innerHTML='';
+  for(const k of['vocals','drums','bass','other']){
+    const d=document.createElement('div');d.className='stem';
+    const lb=document.createElement('span');lb.textContent=k;
+    const pb=document.createElement('button');pb.textContent='Play';
+    pb.onclick=async()=>{await AC.resume();stopPrev();
+      const s=AC.createBufferSource();s.buffer=mkBuf(result[k]);s.connect(AC.destination);s.start();playing.push(s);};
+    const sb=document.createElement('button');sb.textContent='Stop';sb.onclick=stopPrev;
+    d.append(lb,pb,sb);$('stems').append(d);
+  }
+}
+function stopPrev(){playing.forEach(s=>{try{s.stop()}catch(e){}});playing=[];}
+$('save').onclick=async()=>{
+  if(!result)return;say('saving…');
+  const rec={name:fileName,rate:44100};
+  for(const k of['vocals','drums','bass','other'])rec[k]={l:result[k].left,r:result[k].right};
+  const db=await new Promise((res,rej)=>{const r=indexedDB.open('stage',1);
+    r.onupgradeneeded=()=>r.result.createObjectStore('stems');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
+  await new Promise((res,rej)=>{const t=db.transaction('stems','readwrite').objectStore('stems').put(rec,'set1');
+    t.onsuccess=res;t.onerror=()=>rej(t.error);});
+  say('saved — open the stage, it loads these automatically');};
+</script>
