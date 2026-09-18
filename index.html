@@ -84,7 +84,7 @@ footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:
 <section class="row sec" aria-labelledby="h-src"><h4 id="h-src"><span>01</span>Source</h4>
 <div class="ctl"><input type=file id=f accept="audio/*" aria-label="Upload an audio file"></div>
 <div class="ctl"><label>Demo <select id=demo><option value="">choose a demo track…</option></select></label><button id=loadDemo>Load demo</button></div>
-<p class=hint>Five 24-second CC-BY excerpts with prepared vocals, drums, bass and other instruments. Loading replaces the room and enables experimental spatial imaging; press Play to hear it. Separation can contain bleed; height/front-back perception varies.</p>
+<p class=hint>Seven 24-second CC-BY excerpts, including two Indian-fusion selections (not Bollywood film songs), with prepared vocals, drums, bass and other instruments. Loading replaces the room and enables experimental spatial imaging; press Play to hear it. Separation can contain bleed; height/front-back perception varies.</p>
 <div class="ctl" id=demoSolo hidden><span>Audition:</span><button data-solo="">All parts</button><button data-solo=vocals>Vocals only</button><button data-solo=drums>Drums only</button><button data-solo=bass>Bass only</button><button data-solo=other>Other only</button></div>
 <p id=demoCredit class=hint></p>
 <div class="ctl"><select id=prov aria-label="Free music catalog"><option value=archive>Archive.org</option><option value=audius>Audius</option></select>
@@ -146,7 +146,7 @@ footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:
 </section>
 </div>
 </div>
-<footer class="row hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · speaker height in its panel · ears at 1.6m · build stem-demos-1</footer>
+<footer class="row hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · speaker height in its panel · ears at 1.6m · build indian-fusion-1</footer>
 <script>
 // ponytail: mono-feed per speaker (stereo->HRTF sounds phasey/left-biased). L/R split restores separation.
 let AC, buf, playing=[], live=[], master, verb, wet, comp, balN, trimL=null, trimR=null, anL=null, anR=null;
@@ -334,7 +334,7 @@ $('demoSolo').onclick=e=>{const button=e.target.closest('button[data-solo]');if(
   sps.forEach(s=>s.mute=!!button.dataset.solo&&s.stem!==button.dataset.solo);syncAudioSafe();showSel();draw();
   $('demoSolo').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));};
 async function loadDemoList(){try{demos=await (await fetch('demos/manifest.json')).json();
-  demos.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.title+' — '+d.artist;$('demo').append(o);});}catch(e){}}
+  demos.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=(d.style?d.style+' · ':'')+d.title+' — '+d.artist;$('demo').append(o);});}catch(e){}}
 $('loadDemo').onclick=async()=>{const d=demos.find(d=>d.id===$('demo').value);if(!d)return;
   try{$('loadDemo').disabled=true;stopPbSafe();say('loading demo stems…');
     AC=AC||new (window.AudioContext||window.webkitAudioContext)();await AC.resume();

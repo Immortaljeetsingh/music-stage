@@ -178,5 +178,79 @@
       }
     },
     "contentWarning": false
+  },
+  {
+    "id": "59581",
+    "title": "We are more",
+    "artist": "reiswerk",
+    "featuring": "Starfrosch and Jerry Spoon",
+    "source": "https://ccmixter.org/files/Reiswerk/59581",
+    "download": "https://ccmixter.org/content/Reiswerk/Reiswerk_-_We_are_more.mp3",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "start": 40,
+    "duration": 24,
+    "stems": [
+      "drums",
+      "bass",
+      "other",
+      "vocals"
+    ],
+    "energy": {
+      "drums": {
+        "rms": 0.06903981417417526,
+        "peak": 0.843059778213501
+      },
+      "bass": {
+        "rms": 0.06791577488183975,
+        "peak": 0.25518155097961426
+      },
+      "other": {
+        "rms": 0.04759751260280609,
+        "peak": 0.38306254148483276
+      },
+      "vocals": {
+        "rms": 0.13495555520057678,
+        "peak": 0.8338928818702698
+      }
+    },
+    "contentWarning": false,
+    "style": "Indian fusion"
+  },
+  {
+    "id": "40166",
+    "title": "Cyberbad's Weekend Ft. DonnieOzone & AKFRU",
+    "artist": "coruscate",
+    "featuring": "",
+    "source": "https://ccmixter.org/files/Coruscate/40166",
+    "download": "https://ccmixter.org/content/Coruscate/Coruscate_-_Cyberbad_s_Weekend_Ft._DonnieOzone_AKFRU.mp3",
+    "license": "https://creativecommons.org/licenses/by/3.0/",
+    "start": 65,
+    "duration": 24,
+    "stems": [
+      "drums",
+      "bass",
+      "other",
+      "vocals"
+    ],
+    "energy": {
+      "drums": {
+        "rms": 0.0786258801817894,
+        "peak": 0.506499171257019
+      },
+      "bass": {
+        "rms": 0.14510467648506165,
+        "peak": 0.456004798412323
+      },
+      "other": {
+        "rms": 0.012105925008654594,
+        "peak": 0.19922156631946564
+      },
+      "vocals": {
+        "rms": 0.06932791322469711,
+        "peak": 0.5746275782585144
+      }
+    },
+    "contentWarning": false,
+    "style": "Indian fusion"
   }
 ]

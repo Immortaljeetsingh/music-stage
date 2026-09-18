@@ -9,10 +9,10 @@ const {spawn}=require('node:child_process');
     const page=await browser.newPage({viewport:{width:390,height:844},hasTouch:true});
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.goto('http://localhost:8931/index.html');
-    await page.waitForFunction(()=>document.querySelectorAll('#demo option').length===6);
+    await page.waitForFunction(()=>document.querySelectorAll('#demo option').length===8);
     const options=await page.locator('#demo option').count();
-    assert.equal(options,6,'five demos listed');
-    for(const id of ['71178','71068','46603','46258','70823']){
+    assert.equal(options,8,'seven demos listed');
+    for(const id of ['71178','71068','46603','46258','70823','59581','40166']){
       await page.selectOption('#demo',id);
       await page.locator('#loadDemo').click();
       await page.waitForFunction(()=>!document.getElementById('loadDemo').disabled,null,{timeout:30000});
@@ -42,6 +42,6 @@ const {spawn}=require('node:child_process');
       console.log(id,'ok',info.credit.split(' — ')[0],info.energies.map(v=>v.toFixed(3)).join('/'));
     }
     assert.deepEqual(errors,[],'no page errors');
-    console.log('PASS: five demo bundles load, render, solo correctly, with attribution.');
+    console.log('PASS: seven demo bundles load, render, solo correctly, with attribution.');
   }finally{await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

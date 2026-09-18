@@ -63,11 +63,14 @@ Head tracking uses the device running the page's orientation events, where suppo
 
 `stems.html` loads Demucs/ONNX runtime and a large external model, then attempts separation in the browser. It can require substantial RAM and time, especially on mobile; model downloads and browser compatibility can fail. GitHub Pages does not supply cross-origin isolation headers for multithreaded WASM. Saved stems use IndexedDB on the current browser/origin and can be assigned per speaker.
 
-Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. Source file selection and room layout are not persisted across reloads; saved stems are the exception. Five credited CC-BY demo excerpts and their four synchronized FLAC stems are bundled. Choose a Demo in Source, click Load demo, then Play; All parts / Vocals only / Drums only / Bass only / Other only isolate the virtual sources. Demos require HTTP(S), not file://. The Beat is percussion-led with quieter vocal samples; source separation does not isolate every individual instrument.
+Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. Source file selection and room layout are not persisted across reloads; saved stems are the exception. Seven credited CC-BY demo excerpts and their four synchronized FLAC stems are bundled, including two Indian-fusion selections chosen because no Bollywood film song could be redistributed: commercial film soundtracks stay copyrighted regardless of style. Choose a Demo in Source, click Load demo, then Play; All parts / Vocals only / Drums only / Bass only / Other only isolate the virtual sources. Demos require HTTP(S), not file://. The Beat is percussion-led with quieter vocal samples; source separation does not isolate every individual instrument.
 
 ## Bundled demo credits
 
-Source audio and full stems-credit chains: [ccmixter.org](https://ccmixter.org/). Excerpts are 24 seconds, faded, and machine-separated with [Demucs](https://github.com/adefossez/demucs); stems are AI-generated, not the artists' original studio stems. Two tracks were replaced because their excerpts lacked drums and bass.
+Source audio and full stems-credit chains: [ccmixter.org](https://ccmixter.org/). Excerpts are 24 seconds, faded, and machine-separated with [Demucs](https://github.com/adefossez/demucs); stems are AI-generated, not the artists' original studio stems. Two unrelated-artist tracks share the title "Come Home"; two later additions are Indian-fusion arrangements, not Bollywood film songs. Two early picks were replaced because their excerpts lacked drums and bass.
+
+- **We are more (59581)** — Reiswerk ft. spinningmerkaba (Starfrosch & Jerry Spoon) — Indian fusion (sitar, tabla, harmonium over electronic pop; English vocals) — [source](https://ccmixter.org/files/Reiswerk/59581) — [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) — samples [We Are More pell by spinningmerkaba](https://ccmixter.org/files/jlbrock44/59515) (CC BY 3.0)
+- **Cyberbad's Weekend (40166)** — coruscate ft. DonnieOzone & AKFRU — Indian-influenced hip-hop/dubstep — [source](https://ccmixter.org/files/Coruscate/40166) — [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) — samples [The Weekend pell by Donnie Ozone](https://ccmixter.org/files/donnieozone/37325) (CC BY 3.0), [Cyberabad samples by AKFRU](https://ccmixter.org/files/AKFRU/38423) (CC BY 3.0)
 
 - **Come Home (71178)** — Gabriel Shellington ft. spinningmerkaba — [source](https://ccmixter.org/files/gabriel_shelligton/71178) — [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) — samples [Come Home pell by spinningmerkaba](https://ccmixter.org/files/jlbrock44/46531) (CC BY 3.0)
 - **M.U.S.T.A.N.G Beats (71068)** — Gabriel Shellington ft. Ms. Vybe — [source](https://ccmixter.org/files/gabriel_shelligton/71068) — [CC BY 2.5](https://creativecommons.org/licenses/by/2.5/) — samples [M.U.S.T.A.N.G by Ms. Vybe](https://ccmixter.org/files/kendra/3301) (CC BY 2.5)
@@ -99,7 +102,7 @@ node test-ui.cjs
 node test-demos.cjs
 ```
 
-The demo test also needs Python on PATH; it serves this folder temporarily on port 8931 and checks all five bundles, synchronized decoded lengths, stereo output, attribution and solo controls.
+The demo test also needs Python on PATH; it serves this folder temporarily on port 8931 and checks all seven bundles, synchronized decoded lengths, stereo output, attribution and solo controls.
 
 `test.cjs` renders actual Web Audio through Chrome's OfflineAudioContext and checks centered bass/treble symmetry with reflections in both engines. `test-ui.cjs` checks mouse and real browser touch input for bed, sofa, and wardrobe dragging at mobile/desktop sizes, coordinate synchronization, bounds, and overflow. These tests do not verify perceived realism on a physical headset. No lint/typecheck command is configured.
 
