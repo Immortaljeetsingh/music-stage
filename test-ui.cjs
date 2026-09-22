@@ -5,7 +5,7 @@ const {chromium}=require('playwright');
 (async()=>{
   const browser=await chromium.launch(process.env.BROWSER_PATH?{executablePath:process.env.BROWSER_PATH}:{channel:'chrome'});
   try{
-    for(const width of [390,1280]){
+    for(const width of [320,390,768,1280]){
       const page=await browser.newPage({viewport:{width,height:900},hasTouch:true});
       const errors=[];page.on('pageerror',e=>errors.push(e.message));
       await page.goto(pathToFileURL(path.join(__dirname,'index.html')).href);
@@ -35,7 +35,11 @@ const {chromium}=require('playwright');
         }
         await page.getByRole('button',{name:'Remove '+type,exact:true}).click();
       }
-      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'no overflow');
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'no overflow at '+width);
+      // sticky stage column must fit the viewport, else its bottom (#sel) is unreachable
+      assert(await page.evaluate(()=>{const c=document.querySelector('.col-stage');return getComputedStyle(c).position!=='sticky'||c.getBoundingClientRect().height<=innerHeight+1;}),'sticky col fits viewport at '+width);
+      // sound section (widest controls) must sit inside the viewport
+      assert(await page.evaluate(()=>{const r=document.querySelector('#h-snd').closest('.sec').getBoundingClientRect();return r.right<=innerWidth+1&&r.left>=-1;}),'sound section in view at '+width);
       // presets: every option applies its exact control values; manual tweak returns selector to Custom
       const presets=await page.evaluate(()=>Object.keys(PRESETS));
       assert(presets.length>=6,'presets present: '+presets.length);
@@ -49,6 +53,6 @@ const {chromium}=require('playwright');
       assert.deepEqual(errors,[],'no browser errors');
       await page.close();
     }
-    console.log('PASS: mouse and real touch dragging for bed, sofa, wardrobe on mobile and desktop; bounds, coordinates, presets and layout.');
+    console.log('PASS: mouse and real touch dragging for bed, sofa, wardrobe on mobile and desktop; bounds, coordinates, presets, layout and viewports 320-1280.');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
