@@ -74,7 +74,7 @@ footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:
 <div class="layout">
 <div class="col-stage">
 <section class="stage" aria-labelledby="h-stage">
-<div class="stagebar"><h4 id="h-stage">Stage</h4><span class="hint">drag speakers, furniture &amp; listener · click floor to move</span></div>
+<div class="stagebar"><h4 id="h-stage">Stage</h4><span class="hint">drag speakers, furniture &amp; listener · click floor to move · Delete removes speaker</span></div>
 <canvas id=c width=900 height=600 role="img" aria-label="3D room view. Speakers are numbered cabinets, listener is the green head with heading."></canvas>
 <div class="stage-foot"><span><strong>●</strong> colored ring = speaker type</span><span><strong>○</strong> white ring = selected</span><span><strong>▲</strong> green = you, facing the arrow</span><span>drag = live move</span></div>
 </section>
@@ -102,7 +102,8 @@ footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:
 <label>Absorb <input type=range id=wallAbs min=0.1 max=0.9 step=0.05 value=0.5 aria-label="Wall absorption"></label>
 <label>Room verb <input type=range id=roomAmt min=0 max=0.4 step=0.01 value=0.05 style="width:80px" aria-label="Late reverb amount"></label>
 <label><input type=checkbox id=air> Air dulls far</label></div>
-<div class="ctl"><label>Room softness <select id=furn><option>Empty</option><option>Furnished</option><option>Cluttered</option></select></label></div>
+<div class="ctl"><label>Room softness <select id=furn><option>Empty</option><option>Furnished</option><option>Cluttered</option></select></label>
+<label>Preset <select id=preset title="One-tap room tune. Sets reflections, absorption, reverb, softness and air — layout and speakers untouched."><option value="">Custom</option><option>Studio</option><option>Living Room</option><option>Concert Hall</option><option>Club</option><option>Cathedral</option><option>Outdoor</option></select></label></div>
 <div class="ctl"><button id=addBed>Add bed</button><button id=addSofa>Add sofa</button><button id=addWardrobe>Add wardrobe / almirah</button></div>
 <div id=furniture></div><p class=hint>Furniture coordinates and dimensions are meters. Softness/absorption and blocked-path filtering are adjustable approximations, not a measured room replica. Hard cupboards do not absorb like upholstery.</p>
 </section>
@@ -110,7 +111,7 @@ footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:
 <div class="ctl"><button id=addSp>Add full</button>
 <button id=addTw>Add tweeter</button>
 <button id=addSub>Add sub</button>
-<button id=stage8>8-corner stage</button>
+<button id=stage8>9-box stage</button>
 <button id=mapStems style="display:none">Map stems</button>
 <button id=openStems>Stems…</button></div>
 </section>
@@ -146,7 +147,7 @@ footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:
 </section>
 </div>
 </div>
-<footer class="row hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · speaker height in its panel · ears at 1.6m · build indian-fusion-1</footer>
+<footer class="row hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · speaker height in its panel · ears at 1.6m · build presets-1</footer>
 <script>
 // ponytail: mono-feed per speaker (stereo->HRTF sounds phasey/left-biased). L/R split restores separation.
 let AC, buf, playing=[], live=[], master, verb, wet, comp, balN, trimL=null, trimR=null, anL=null, anR=null;
@@ -217,7 +218,7 @@ $('f').onchange=async e=>{
   const ab=await e.target.files[0].arrayBuffer();
   buf=await AC.decodeAudioData(ab);
   srcMono=buf.numberOfChannels<2;
-  playOffset=0;updTime();
+  clearStems();playOffset=0;updTime();
   say('file: '+buf.numberOfChannels+'ch '+(srcMono?'(mono→dual-mono)':('('+audit(buf)+')'))+' — press Play');
 };
 $('addSp').onclick=()=>{sps.push({x:room.w/2,y:room.l/2,h:EAR,v:1,sub:false,ch:'M',band:'Full'});if(playing.length)seekTo(curPos());draw();};
@@ -235,8 +236,8 @@ $('stage8').onclick=()=>{ // 4 ear-level fulls + 4 ceiling tweeters + 1 floor su
     {x:0.5,y:l-0.5,h:h-0.3,v:0.6,sub:false,ch:'L',band:'Tweeter'},
     {x:w-0.5,y:l-0.5,h:h-0.3,v:0.6,sub:false,ch:'R',band:'Tweeter'},
     {x:w/2,y:0.5,h:0.3,v:1.5,sub:true,ch:'M',band:'Full'},
-  ];selIdx=0;if(playing.length)seekTo(curPos());showSel();draw();say('8-corner rig placed');};
-$('roomAmt').oninput=e=>{if(wet)wet.gain.value=+e.target.value;};
+  ];selIdx=0;if(playing.length)seekTo(curPos());showSel();draw();say('9-box rig placed');};
+$('roomAmt').oninput=e=>{if(wet)wet.gain.value=+e.target.value;$('preset').value='';};
 $('openStems').onclick=()=>location.href='stems.html';
 $('mapStems').onclick=()=>{sps.forEach(s=>{ // real stems to real places; drums free to assign by hand
   if(s.sub)s.stem='bass';else if(s.band==='Tweeter')s.stem='other';
@@ -253,14 +254,14 @@ async function loadStemsFromCache(){try{
   if(!rec||!rec.vocals)return;
   AC=AC||new (window.AudioContext||window.webkitAudioContext)();
   for(const k of['vocals','drums','bass','other']){if(rec[k]&&rec[k].l){
-    const b=AC.createBuffer(2,rec[k].l.length,AC.sampleRate);
-    b.getChannelData(0).set(resample441(rec[k].l,AC.sampleRate));
-    b.getChannelData(1).set(resample441(rec[k].r,AC.sampleRate));stemBufs[k]=b;}}
+    const L=resample441(rec[k].l,AC.sampleRate),R=resample441(rec[k].r,AC.sampleRate);
+    const b=AC.createBuffer(2,Math.max(L.length,R.length),AC.sampleRate); // size from resampled data, not the 44.1k source
+    b.getChannelData(0).set(L);b.getChannelData(1).set(R);stemBufs[k]=b;}}
   stemNames=Object.keys(stemBufs);
   if(stemNames.length){$('mapStems').style.display='';say('stems ready ('+(rec.name||'track')+'): '+stemNames.join(', ')+' — assign per speaker or Map stems');showSel();}
 }catch(e){}}
-$('air').onchange=()=>syncAudioSafe();
-$('furn').onchange=furnitureChanged;
+$('air').onchange=()=>{$('preset').value='';syncAudioSafe();};
+$('furn').onchange=()=>{$('preset').value='';furnitureChanged();};
 $('addBed').onclick=()=>addFurniture('Bed');$('addSofa').onclick=()=>addFurniture('Sofa');$('addWardrobe').onclick=()=>addFurniture('Wardrobe');
 $('hpdev').onchange=()=>{if(playing.length)seekTo(curPos());
   if($('hpdev').value==='pro3')say('AirPods Pro 3: no numerical correction verified here; EQ bypassed. Pro 2 correction is not interchangeable.');};
@@ -293,8 +294,23 @@ $('swap').onchange=()=>{SWAP=$('swap').checked;if(playing.length)seekTo(curPos()
 $('trimL').oninput=e=>{TRIM.l=+e.target.value;if(trimL)trimL.gain.setTargetAtTime(TRIM.l,AC.currentTime,0.02);};
 $('trimR').oninput=e=>{TRIM.r=+e.target.value;if(trimR)trimR.gain.setTargetAtTime(TRIM.r,AC.currentTime,0.02);};
 $('hq').onchange=()=>{if(playing.length)seekTo(curPos());}; // imaging engine rebuild
-$('walls').onchange=()=>{if(playing.length)seekTo(curPos());}; // taps rebuild
-$('wallAbs').oninput=()=>syncAudioSafe(); // tap gains follow live
+$('walls').onchange=()=>{$('preset').value='';if(playing.length)seekTo(curPos());}; // taps rebuild
+$('wallAbs').oninput=()=>{$('preset').value='';syncAudioSafe();}; // tap gains follow live
+// one-tap room tunes: only reflections/absorption/reverb/softness/air — layout and speakers untouched
+const PRESETS={
+ Studio:{walls:true,abs:0.85,verb:0,furn:'Empty',air:false},
+ 'Living Room':{walls:true,abs:0.5,verb:0.05,furn:'Furnished',air:false},
+ 'Concert Hall':{walls:true,abs:0.25,verb:0.18,furn:'Empty',air:true},
+ Club:{walls:true,abs:0.4,verb:0.1,furn:'Cluttered',air:true},
+ Cathedral:{walls:true,abs:0.1,verb:0.3,furn:'Empty',air:true},
+ Outdoor:{walls:false,abs:0.5,verb:0,furn:'Empty',air:true}};
+function applyPreset(name){const p=PRESETS[name];if(!p)return;
+  $('walls').checked=p.walls;$('wallAbs').value=p.abs;$('roomAmt').value=p.verb;
+  $('furn').value=p.furn;$('air').checked=p.air;
+  if(wet)wet.gain.value=p.verb;
+  if(playing.length)seekTo(curPos());else{syncAudioSafe();draw();} // rebuild: late-tail impulse depends on softness
+  say(name+': reflections '+(p.walls?'on':'off')+', absorb '+p.abs+', verb '+p.verb+', '+p.furn.toLowerCase()+(p.air?', air dulls far':'')+'.');}
+$('preset').onchange=e=>applyPreset(e.target.value);
 function beep(side){
   AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume();
   const o=AC.createOscillator(),g=AC.createGain(),p=AC.createStereoPanner();
@@ -317,9 +333,12 @@ async function loadRemote(url,title){
     say('decoding '+((ab.byteLength/1048576).toFixed(1))+'MB…');
     buf=await AC.decodeAudioData(ab);
     srcMono=buf.numberOfChannels<2;
-    playOffset=0;updTime();say('loaded: '+title+' ('+buf.numberOfChannels+'ch'+(srcMono?', mono→dual-mono':' ('+audit(buf)+')')+') — press Play');
+    clearStems();playOffset=0;updTime();say('loaded: '+title+' ('+buf.numberOfChannels+'ch'+(srcMono?', mono→dual-mono':' ('+audit(buf)+')')+') — press Play');
   }catch(e){say('failed ('+((e&&e.message)||'CORS/network')+') — try another track, paste a link, or upload');}}
 function stopPbSafe(){try{if(playing.length)stopPb();}catch(e){}}
+function clearStems(){ // a new mix must not keep playing the previous stems
+  stemBufs={};stemNames=[];sps.forEach(s=>delete s.stem);
+  $('mapStems').style.display='none';$('demoSolo').hidden=true;showSel();}
 $('loadUrl').onclick=()=>{const u=$('url').value.trim();if(u)loadRemote(u,u.split('/').pop());};
 (function probe(){try{
   const C=window.AudioContext||window.webkitAudioContext;if(!C){say('this browser has no Web Audio');return;}

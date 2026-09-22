@@ -11,7 +11,7 @@ A browser-based listening room: arrange virtual speakers and furniture, move a l
 3. Drag speaker cabinets or the green listener in the room. Click empty floor to reposition the listener. Desktop WASD/arrow keys also move the listener.
 4. Select a speaker to change its volume, source channel, frequency band, height, or numerical X/Y position. Volume reaches 4×; master reaches 2.5×. More gain can distort.
 5. Add a bed, sofa, or wardrobe/almirah in **Room**. Drag its visible top or side with a mouse or finger. Numeric controls provide precise dimensions, coordinates, and estimated absorption. Objects remain inside the room.
-6. Adjust room reflections, absorption, softness, and late reverb. Furniture movement updates direct-path obstruction while playback continues.
+6. Adjust room reflections, absorption, softness, and late reverb — or pick a one-tap **Preset** (Studio, Living Room, Concert Hall, Club, Cathedral, Outdoor). Presets only retune the room; your layout and speakers stay put. Touching any room control afterwards returns the selector to Custom. Furniture movement updates direct-path obstruction while playback continues.
 
 On mobile, drag directly on the room canvas; scroll using the surrounding page. Transport appears before the other control sections. Numeric controls remain an alternative to dragging.
 
@@ -63,7 +63,7 @@ Head tracking uses the device running the page's orientation events, where suppo
 
 `stems.html` loads Demucs/ONNX runtime and a large external model, then attempts separation in the browser. It can require substantial RAM and time, especially on mobile; model downloads and browser compatibility can fail. GitHub Pages does not supply cross-origin isolation headers for multithreaded WASM. Saved stems use IndexedDB on the current browser/origin and can be assigned per speaker.
 
-Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. Source file selection and room layout are not persisted across reloads; saved stems are the exception. Seven credited CC-BY demo excerpts and their four synchronized FLAC stems are bundled, including two Indian-fusion selections chosen because no Bollywood film song could be redistributed: commercial film soundtracks stay copyrighted regardless of style. Choose a Demo in Source, click Load demo, then Play; All parts / Vocals only / Drums only / Bass only / Other only isolate the virtual sources. Demos require HTTP(S), not file://. The Beat is percussion-led with quieter vocal samples; source separation does not isolate every individual instrument.
+Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. Source file selection and room layout are not persisted across reloads; saved stems are the exception. Loading a new mix clears any previously loaded stems and speaker stem assignments, so boxes never silently keep playing old material. Seven credited CC-BY demo excerpts and their four synchronized FLAC stems are bundled, including two Indian-fusion selections chosen because no Bollywood film song could be redistributed: commercial film soundtracks stay copyrighted regardless of style. Choose a Demo in Source, click Load demo, then Play; All parts / Vocals only / Drums only / Bass only / Other only isolate the virtual sources. Demos require HTTP(S), not file://. The Beat is percussion-led with quieter vocal samples; source separation does not isolate every individual instrument.
 
 ## Bundled demo credits
 
@@ -100,6 +100,7 @@ node --check test-ui.cjs
 node test.cjs
 node test-ui.cjs
 node test-demos.cjs
+node test-stems.cjs
 ```
 
 The demo test also needs Python on PATH; it serves this folder temporarily on port 8931 and checks all seven bundles, synchronized decoded lengths, stereo output, attribution and solo controls.
@@ -109,6 +110,10 @@ The demo test also needs Python on PATH; it serves this folder temporarily on po
 ## Hosting and limitations
 
 GitHub Pages publishes the repository root from `main`. Push changes to trigger deployment; hard-refresh the live site after deployment and check the footer build label.
+
+The app code is MIT licensed (see LICENSE). Bundled demo audio stays under its CC-BY terms with attribution — the licenses are separate.
+
+Loose audio drops (`*.mp3` etc.) are git-ignored by default so personal/copyrighted files in this folder can never be committed by accident; only `demos/` is published.
 
 This is an experimental simulation, **not exact acoustic replication**: no measured room response, room-mode solver, wave diffraction, personal HRTF, or calibrated loudspeaker directivity. Hard furnishings are not fully simulated as reflecting geometry. The output ceiling prevents excessive digital sample values but can introduce clipping distortion; it is not hearing protection.
 

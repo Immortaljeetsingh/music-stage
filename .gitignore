@@ -1,0 +1,12 @@
+# user audio drops — never commit these (copyrighted material must stay local)
+*.mp3
+*.wav
+*.m4a
+*.ogg
+*.opus
+*.flac
+!demos/**/*.flac
+# tooling / OS
+node_modules/
+.DS_Store
+Thumbs.db

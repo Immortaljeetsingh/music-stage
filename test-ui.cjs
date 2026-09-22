@@ -36,9 +36,19 @@ const {chromium}=require('playwright');
         await page.getByRole('button',{name:'Remove '+type,exact:true}).click();
       }
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'no overflow');
+      // presets: every option applies its exact control values; manual tweak returns selector to Custom
+      const presets=await page.evaluate(()=>Object.keys(PRESETS));
+      assert(presets.length>=6,'presets present: '+presets.length);
+      for(const name of presets){
+        await page.selectOption('#preset',name);
+        const applied=await page.evaluate(()=>({walls:$('walls').checked,abs:+$('wallAbs').value,verb:+$('roomAmt').value,furn:$('furn').value,air:$('air').checked,expect:PRESETS[$('preset').value]}));
+        assert.deepEqual({walls:applied.walls,abs:applied.abs,verb:applied.verb,furn:applied.furn,air:applied.air},applied.expect,name+' applied');
+      }
+      await page.evaluate(()=>{const el=$('wallAbs');el.value=0.6;el.dispatchEvent(new Event('input'));});
+      assert.equal(await page.evaluate(()=>$('preset').value),'','manual tweak resets preset');
       assert.deepEqual(errors,[],'no browser errors');
       await page.close();
     }
-    console.log('PASS: mouse and real touch dragging for bed, sofa, wardrobe on mobile and desktop; bounds, coordinates and layout.');
+    console.log('PASS: mouse and real touch dragging for bed, sofa, wardrobe on mobile and desktop; bounds, coordinates, presets and layout.');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
