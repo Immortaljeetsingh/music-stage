@@ -86,7 +86,7 @@ details.hint summary{padding:6px 0;cursor:pointer}
 <section class="row sec" aria-labelledby="h-src"><h4 id="h-src"><span>01</span>Source</h4>
 <div class="ctl"><input type=file id=f accept="audio/*" aria-label="Upload an audio file"></div>
 <div class="ctl"><label>Demo <select id=demo><option value="">choose a demo track…</option></select></label><button id=loadDemo>Load demo</button></div>
-<p class=hint>Seven 24-second CC-BY excerpts, including two Indian-fusion selections (not Bollywood film songs), with prepared vocals, drums, bass and other instruments. Loading replaces the room and enables experimental spatial imaging; press Play to hear it. Separation can contain bleed; height/front-back perception varies.</p>
+<p class=hint>Seven 24-second CC-BY excerpts, including two Indian-fusion selections (not Bollywood film songs). Loading plays the original mix on a stereo pair — press Play. Map stems splits prepared vocals, drums, bass and other instruments onto four boxes (experimental separation is lossy). All parts / Vocals only buttons audition each part. Demos require HTTP(S); press Play to hear. Height/front-back perception varies.</p>
 <div class="ctl" id=demoSolo hidden><span>Audition:</span><button data-solo="">All parts</button><button data-solo=vocals>Vocals only</button><button data-solo=drums>Drums only</button><button data-solo=bass>Bass only</button><button data-solo=other>Other only</button></div>
 <p id=demoCredit class=hint></p>
 <div class="ctl"><select id=prov aria-label="Free music catalog"><option value=archive>Archive.org</option><option value=audius>Audius</option></select>
@@ -149,7 +149,7 @@ details.hint summary{padding:6px 0;cursor:pointer}
 </section>
 </div>
 </div>
-<footer class="row hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · speaker height in its panel · ears at 1.6m · build responsive-ui-1</footer>
+<footer class="row hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · speaker height in its panel · ears at 1.6m · build fidelity-1</footer>
 <script>
 // ponytail: mono-feed per speaker (stereo->HRTF sounds phasey/left-biased). L/R split restores separation.
 let AC, buf, playing=[], live=[], master, verb, wet, comp, balN, trimL=null, trimR=null, anL=null, anR=null;
@@ -241,12 +241,31 @@ $('stage8').onclick=()=>{ // 4 ear-level fulls + 4 ceiling tweeters + 1 floor su
   ];selIdx=0;if(playing.length)seekTo(curPos());showSel();draw();say('9-box rig placed');};
 $('roomAmt').oninput=e=>{if(wet)wet.gain.value=+e.target.value;$('preset').value='';};
 $('openStems').onclick=()=>location.href='stems.html';
-$('mapStems').onclick=()=>{sps.forEach(s=>{ // real stems to real places; drums free to assign by hand
-  if(s.sub)s.stem='bass';else if(s.band==='Tweeter')s.stem='other';
-  else if(s.y<room.l/2)s.stem='other';else s.stem='vocals';});
-  if(playing.length)seekTo(curPos());showSel();draw();say('mapped: fronts/other, rears/vocals, sub/bass — assign drums manually');};
-function resample441(d,rate){if(rate===44100)return d;const o=new Float32Array(Math.round(d.length*rate/44100));
-  for(let i=0;i<o.length;i++){const p=i*44100/rate,j=Math.floor(p),f=p-j;o[i]=d[j]*(1-f)+(d[j+1]||0)*f;}return o;}
+$('mapStems').onclick=()=>{ // separated rig is opt-in: Demucs output is lossy vs the original mix
+  if(stemNames.length===4){
+    sps=[{x:3,y:1,h:1.6,v:1.1,ch:'M',band:'Full',stem:'vocals'},
+      {x:1,y:2,h:1.3,v:1.1,ch:'M',band:'Full',stem:'drums'},
+      {x:5,y:6.5,h:2.5,v:1.4,ch:'M',band:'Full',stem:'other'},
+      {x:3,y:6.5,h:0.3,v:1.4,sub:true,ch:'M',band:'Full',stem:'bass'}];
+    selIdx=0;
+    $('demoSolo').hidden=false;
+    $('demoSolo').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(!b.dataset.solo)));
+    say('separated rig: vocals front, drums left, other rear-high, bass sub — audition parts below');
+  }else{
+    sps.forEach(s=>{ // partial stem set: map onto current boxes, drums by hand
+      if(s.sub)s.stem='bass';else if(s.band==='Tweeter')s.stem='other';
+      else if(s.y<room.l/2)s.stem='other';else s.stem='vocals';});
+    $('demoSolo').hidden=false;
+    say('mapped: fronts/other, rears/vocals, sub/bass — assign drums manually');
+  }
+  if(playing.length)seekTo(curPos());showSel();draw();};
+async function resampleStem(l44,r44){ // ponytail: native resampler — linear interp loses HF and images above ~15k at 48k
+  const n=l44.length,src=AC.createBuffer(2,n,44100);
+  src.getChannelData(0).set(l44);src.getChannelData(1).set(r44);
+  const off=new OfflineAudioContext(2,Math.round(n*AC.sampleRate/44100),AC.sampleRate);
+  const s=off.createBufferSource();s.buffer=src;s.connect(off.destination);s.start();
+  return off.startRendering();
+}
 async function loadStemsFromCache(){try{
   if(!('indexedDB' in window))return;
   const db=await new Promise((res,rej)=>{const r=indexedDB.open('stage',1);
@@ -256,9 +275,7 @@ async function loadStemsFromCache(){try{
   if(!rec||!rec.vocals)return;
   AC=AC||new (window.AudioContext||window.webkitAudioContext)();
   for(const k of['vocals','drums','bass','other']){if(rec[k]&&rec[k].l){
-    const L=resample441(rec[k].l,AC.sampleRate),R=resample441(rec[k].r,AC.sampleRate);
-    const b=AC.createBuffer(2,Math.max(L.length,R.length),AC.sampleRate); // size from resampled data, not the 44.1k source
-    b.getChannelData(0).set(L);b.getChannelData(1).set(R);stemBufs[k]=b;}}
+    stemBufs[k]=await resampleStem(rec[k].l,rec[k].r);}}
   stemNames=Object.keys(stemBufs);
   if(stemNames.length){$('mapStems').style.display='';say('stems ready ('+(rec.name||'track')+'): '+stemNames.join(', ')+' — assign per speaker or Map stems');showSel();}
 }catch(e){}}
@@ -366,19 +383,15 @@ $('loadDemo').onclick=async()=>{const d=demos.find(d=>d.id===$('demo').value);if
     if(Object.values(loaded).some(b=>b.length!==length||b.numberOfChannels!==2))throw new Error('stem alignment mismatch');
     stopPbSafe();buf=loaded.mix;delete loaded.mix;stemBufs=loaded;srcMono=false;stemNames=Object.keys(stemBufs);playOffset=0;
     room={w:6,l:8,h:3};listener.x=3;listener.y=4;listener.yaw=0;listener.pitch=0;furniture.length=0;showFurniture();
-    sps=[{x:3,y:1,h:1.6,v:1.1,ch:'M',band:'Full',stem:'vocals'},
-      {x:1,y:2,h:1.3,v:1.1,ch:'M',band:'Full',stem:'drums'},
-      {x:5,y:6.5,h:2.5,v:1.4,ch:'M',band:'Full',stem:'other'},
-      {x:3,y:6.5,h:0.3,v:1.4,sub:true,ch:'M',band:'Full',stem:'bass'}];
+    sps=[{x:1,y:1.5,h:1.6,v:1.1,ch:'L',band:'Full'},{x:5,y:1.5,h:1.6,v:1.1,ch:'R',band:'Full'}]; // original mix on a stereo pair: AI separation is lossy — Map stems opts into the 4-box rig
     $('hq').checked=true;$('walls').checked=true;$('roomAmt').value=0.04;$('mvol').value=0.7;$('bal').value=0;
     TRIM={l:1,r:1};$('trimL').value=1;$('trimR').value=1;
     $('rw').value=6;$('rl').value=8;$('rh').value=3;$('yaw').value=0;$('look').value=0;$('uni').checked=true;listener.useSensor=false;
     $('width').value=1;$('align').checked=false;$('air').checked=false;$('wallAbs').value=0.65;$('furn').value='Empty';SWAP=false;$('swap').checked=false;
-    $('demoSolo').hidden=false;$('demoSolo').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(!b.dataset.solo)));
+    $('demoSolo').hidden=true;$('mapStems').style.display='';selIdx=0;showSel();draw();updTime();
     const credit=$('demoCredit');credit.replaceChildren(document.createTextNode(d.title+' by '+d.artist+(d.featuring?' featuring '+d.featuring:'')+' — excerpted, faded and AI-separated. '));
     for(const [text,url] of [['Original & credits',d.source],['CC BY license',d.license],['Full attribution','https://github.com/Immortaljeetsingh/music-stage#bundled-demo-credits']]){const a=document.createElement('a');a.textContent=text;a.href=url;credit.append(a,document.createTextNode(' · '));}
-    $('mapStems').style.display='';selIdx=0;showSel();draw();updTime();
-    say(d.title+' — '+d.artist+' · CC BY · 24s demo. Vocal front, drums left, instruments rear-high, bass rear-low. Press Play.');
+    say(d.title+' — '+d.artist+' · CC BY · 24s demo. Original mix on a stereo pair — press Play. Map stems for the separated 4-box rig.');
   }catch(e){say('demo load failed: '+e.message);}finally{$('loadDemo').disabled=false;}};
 loadDemoList();
 const AUH=['https://api.audius.co','https://discoveryprovider.audius.co']; // api host now gates keys; legacy still open
@@ -515,8 +528,8 @@ function stopPb(){const pos=curPosSafe();playing.forEach(s=>{try{s.stop();s.disc
 function curPosSafe(){try{return curPos();}catch(e){return playOffset;}}
 function startPb(offset){
   master=AC.createGain();master.gain.value=+$('mvol').value;
-  comp=AC.createDynamicsCompressor(); // gentle glue: stock comp crushed big rigs into distortion
-  comp.threshold.value=-12;comp.knee.value=20;comp.ratio.value=4;comp.attack.value=0.004;comp.release.value=0.25;
+  comp=AC.createDynamicsCompressor(); // safety limiter ONLY: old -12dB/4:1 glue with 20dB knee started riding at -32dB — pumped and smeared every note
+  comp.threshold.value=0;comp.knee.value=6;comp.ratio.value=12;comp.attack.value=0.001;comp.release.value=0.1;
   balN=AC.createStereoPanner();balN.pan.value=+$('bal').value;
   // per-ear trim: split → trimL/trimR → merge (correct channel handling, works in every mode)
   const tsp=AC.createChannelSplitter(2),tmg=AC.createChannelMerger(2);
@@ -530,7 +543,8 @@ function startPb(offset){
     prof.f.forEach(([fc,ty,g2,q])=>{const bq=AC.createBiquadFilter();bq.type=ty;bq.frequency.value=Math.min(fc,AC.sampleRate*0.49);bq.Q.value=q;bq.gain.value=g2;output.connect(bq);output=bq;hpNodes.push(bq);});}
   const ceiling=AC.createWaveShaper(),curve=new Float32Array(4097);
   for(let i=0;i<curve.length;i++){const v=i*2/(curve.length-1)-1;curve[i]=Math.max(-0.95,Math.min(0.95,v));}
-  ceiling.curve=curve;output.connect(ceiling);output=ceiling;output.connect(AC.destination);
+  ceiling.curve=curve;ceiling.oversample='4x'; // 1x waveshaper aliases on every clip — 4x removes the imaging artifacts
+  output.connect(ceiling);output=ceiling;output.connect(AC.destination);
   try{ // live output meters: visible proof of what each ear is actually fed
     const msp=AC.createChannelSplitter(2);
     anL=AC.createAnalyser();anR=AC.createAnalyser();anL.fftSize=512;anR.fftSize=512;
@@ -577,8 +591,8 @@ function startPb(offset){
     const mkChain=(inputs,off)=>{
       const g=AC.createGain();g.gain.value=s.v*norm*(s.mute?0:1);
       inputs.forEach(n=>n.connect(g));
-      const occ=AC.createBiquadFilter();occ.type='lowpass';occ.frequency.value=blocked(s,off)?1800:20000;
-      const lp=AC.createBiquadFilter();lp.type='lowpass';
+      const occ=AC.createBiquadFilter();occ.type='lowpass';occ.Q.value=0.707;occ.frequency.value=blocked(s,off)?1800:20000;
+      const lp=AC.createBiquadFilter();lp.type='lowpass';lp.Q.value=0.707; // Q=1 stacked ~+2dB hump at 10-14kHz then cliff: audible treble coloration
       const d0=dist(s,listener);
       const airOn=$('air').checked;
       lp.frequency.value=s.sub?120:(airOn?Math.max(12000,20000/(1+d0*0.08)):20000); // off = clearest

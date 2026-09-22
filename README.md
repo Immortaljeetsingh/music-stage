@@ -43,8 +43,8 @@ AudioBuffer source -> band filter -> channel split / width
  -> speaker gain + mute -> air/sub low-pass
     -> obstruction low-pass -> distance gain -> delay -> spatializer
     -> first-order wall reflections and synthetic late reverb
- -> master -> compressor -> balance -> per-ear trims
- -> optional headphone EQ with preamp -> output ceiling -> stereo output/meters
+ -> master -> safety limiter (engaged only on overs) -> balance -> per-ear trims
+ -> optional headphone EQ with preamp -> output ceiling (4x oversampled clip) -> stereo output/meters
 ```
 
 Six mirrored image sources approximate first-order wall reflections. The late reverb uses a synthetic decaying-noise impulse. Softness and estimated furnishing area shorten/darken the tail. A segment/box intersection test detects blocked source-listener paths and applies a heuristic 1.8 kHz low-pass to direct sound, leaving the room send separate.
@@ -63,7 +63,7 @@ Head tracking uses the device running the page's orientation events, where suppo
 
 `stems.html` loads Demucs/ONNX runtime and a large external model, then attempts separation in the browser. It can require substantial RAM and time, especially on mobile; model downloads and browser compatibility can fail. GitHub Pages does not supply cross-origin isolation headers for multithreaded WASM. Saved stems use IndexedDB on the current browser/origin and can be assigned per speaker.
 
-Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. Source file selection and room layout are not persisted across reloads; saved stems are the exception. Loading a new mix clears any previously loaded stems and speaker stem assignments, so boxes never silently keep playing old material. Seven credited CC-BY demo excerpts and their four synchronized FLAC stems are bundled, including two Indian-fusion selections chosen because no Bollywood film song could be redistributed: commercial film soundtracks stay copyrighted regardless of style. Choose a Demo in Source, click Load demo, then Play; All parts / Vocals only / Drums only / Bass only / Other only isolate the virtual sources. Demos require HTTP(S), not file://. The Beat is percussion-led with quieter vocal samples; source separation does not isolate every individual instrument.
+Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. Source file selection and room layout are not persisted across reloads; saved stems are the exception. Loading a new mix clears any previously loaded stems and speaker stem assignments, so boxes never silently keep playing old material. Seven credited CC-BY demo excerpts and their four synchronized FLAC stems are bundled, including two Indian-fusion selections chosen because no Bollywood film song could be redistributed: commercial film soundtracks stay copyrighted regardless of style. Choose a Demo in Source, click Load demo, then Play — the original mix plays on a stereo pair. Map stems switches to the four-box separated rig; All parts / Vocals only / Drums only / Bass only / Other only then isolate the virtual sources (AI separation is lossy, which is why it is opt-in). Demos require HTTP(S), not file://. The Beat is percussion-led with quieter vocal samples; source separation does not isolate every individual instrument.
 
 ## Bundled demo credits
 
@@ -101,11 +101,12 @@ node test.cjs
 node test-ui.cjs
 node test-demos.cjs
 node test-stems.cjs
+node test-quality.cjs
 ```
 
 The demo test also needs Python on PATH; it serves this folder temporarily on port 8931 and checks all seven bundles, synchronized decoded lengths, stereo output, attribution and solo controls.
 
-`test.cjs` renders actual Web Audio through Chrome's OfflineAudioContext and checks centered bass/treble symmetry with reflections in both engines. `test-ui.cjs` checks mouse and real browser touch input for bed, sofa, and wardrobe dragging at mobile/desktop sizes, coordinate synchronization, bounds, and overflow. These tests do not verify perceived realism on a physical headset. No lint/typecheck command is configured.
+`test.cjs` renders actual Web Audio through Chrome's OfflineAudioContext and checks centered bass/treble symmetry with reflections in both engines. `test-quality.cjs` renders the real playback graph and asserts a flat dry passband (±1.5 dB to 14 kHz), level linearity (limiter idle on normal program), and no alias products when the output ceiling clips. `test-ui.cjs` checks mouse and real browser touch input for bed, sofa, and wardrobe dragging at mobile/desktop sizes, coordinate synchronization, bounds, and overflow. These tests do not verify perceived realism on a physical headset. No lint/typecheck command is configured.
 
 ## Hosting and limitations
 
@@ -115,6 +116,6 @@ The app code is MIT licensed (see LICENSE). Bundled demo audio stays under its C
 
 Loose audio drops (`*.mp3` etc.) are git-ignored by default so personal/copyrighted files in this folder can never be committed by accident; only `demos/` is published.
 
-This is an experimental simulation, **not exact acoustic replication**: no measured room response, room-mode solver, wave diffraction, personal HRTF, or calibrated loudspeaker directivity. Hard furnishings are not fully simulated as reflecting geometry. The output ceiling prevents excessive digital sample values but can introduce clipping distortion; it is not hearing protection.
+This is an experimental simulation, **not exact acoustic replication**: no measured room response, room-mode solver, wave diffraction, personal HRTF, or calibrated loudspeaker directivity. Hard furnishings are not fully simulated as reflecting geometry. The output ceiling prevents excessive digital sample values; it is 4x oversampled so hard clips do not add alias products, but clipping distortion itself is still possible at extreme levels. It is not hearing protection.
 
 References: [AutoEq](https://github.com/jaakkopasanen/AutoEq), [ODEON room acoustics](https://odeon.dk/learn/articles/room-acoustics/), [Windows Bluetooth audio](https://learn.microsoft.com/en-us/windows-hardware/drivers/bluetooth/bluetooth-classic-audio).
