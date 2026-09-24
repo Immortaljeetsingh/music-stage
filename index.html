@@ -131,7 +131,6 @@ input[type=checkbox]:checked::after{transform:translateX(20px)}
 .stagebar h4{margin:0;font:600 13px/1 var(--font);letter-spacing:.6px;text-transform:uppercase;color:var(--label2)}
 canvas{width:100%;height:auto;aspect-ratio:3/2;display:block;touch-action:none;cursor:grab;border-radius:20px;
  border:.5px solid var(--sep);background:radial-gradient(ellipse at 50% 28%,#1b2733,#0a1119 82%)}
-:root[data-appearance=light] canvas{background:radial-gradient(ellipse at 50% 28%,#f4f6fa,#e2e6ee 82%)}
 canvas:active{cursor:grabbing}
 .stage-foot{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:11.5px;color:var(--label3)}
 .stage-foot strong{color:var(--accent);font-weight:600}
@@ -149,6 +148,25 @@ canvas:active{cursor:grabbing}
 #demoSolo button[aria-pressed=true]{background:rgba(48,209,88,.22);box-shadow:0 0 0 .5px rgba(48,209,88,.5)}
 #hudGlass{display:flex;flex-direction:column;gap:6px}
 #hudGlass .ends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--label3)}
+
+/* ---- collapsible category groups (iOS inset grouped list) ---- */
+details.group{background:rgba(var(--card-rgb),calc(var(--card-a)*var(--glass-opacity-scale)));
+ -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(170%);backdrop-filter:blur(var(--glass-blur)) saturate(170%);
+ border-radius:var(--r-md);box-shadow:0 0 0 .5px var(--ring),inset 0 0 0 .5px rgba(255,255,255,.07),var(--shadow);overflow:hidden}
+details.group>summary{list-style:none;display:flex;align-items:center;gap:10px;min-height:54px;padding:0 18px;cursor:pointer;
+ font:590 17px/1.2 var(--font);color:var(--label);letter-spacing:-.2px;user-select:none}
+details.group>summary::-webkit-details-marker{display:none}
+details.group>summary::after{content:'';flex:0 0 auto;width:10px;height:10px;margin-left:4px;
+ border-right:2px solid var(--label3);border-bottom:2px solid var(--label3);transform:rotate(-45deg) translate(-2px,-2px);
+ transition:transform .22s cubic-bezier(.32,.72,0,1)}
+details.group[open]>summary::after{transform:rotate(45deg) translate(-1px,-1px)}
+details.group>summary .meta{margin-left:auto;color:var(--label2);font:400 15px/1.2 var(--font);letter-spacing:0;
+ max-width:55%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.group .gbody{display:flex;flex-direction:column;gap:12px;padding:14px 18px 18px;border-top:.5px solid var(--sep)}
+details.group .gbody .hint:has(+*){margin-top:-2px}
+.sec>.hint,.sec>p.hint{margin:0}
+@media(max-width:600px){details.group>summary{min-height:56px;font-size:16px;padding:0 16px}
+ details.group .gbody{padding:12px 16px 16px}}
 
 /* ---- iOS 27 tab bar (mobile): 4 tabs + Prominent Tab capsule ---- */
 .tabbar{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:40;
@@ -215,87 +233,146 @@ footer a{color:var(--blue)}
 </style>
 <header class="topbar glass"><div><div class="eyebrow">Your personal listening room</div><h1>Music Stage</h1><p class="sub">Place your sound. Find your sweet spot.</p></div><span class="badge">Local audio studio</span></header>
 <div class="layout">
-<div class="col-stage" data-panel="stage">
+<div class="col-stage" data-panel="stage" id="panel-stage">
 <section class="stage sec" aria-labelledby="h-stage">
 <div class="stagebar"><h4 id="h-stage">Stage</h4><span class="hint">drag speakers, furniture &amp; listener · click floor to move · Delete removes speaker</span></div>
 <canvas id=c width=900 height=600 role="img" aria-label="3D room view. Speaker cabinets show real driver layouts: two-way full-range boxes, horn tweeters and subwoofers. The listener is a cartoon person; the green cone shows the direction they face."></canvas>
 <div class="stage-foot"><span><strong>●</strong> colored ring = speaker type</span><span><strong>○</strong> blue ring = selected</span><span><strong>▲</strong> person = you, green cone = facing</span><span>drag = live move</span></div>
 </section>
 <div class="row sec" id=sel role="group" aria-label="Selected speaker">Tap a speaker cabinet to select it.</div>
-<section class="sec" aria-labelledby="h-tr"><h4 id="h-tr">Transport</h4>
-<div class="ctl"><button id=play class=tint>Play</button>
+<section class="sec" aria-labelledby="h-tr"><h4 id="h-tr">Transport</h4><div class="ctl"><button id=play class=tint>Play</button>
 <input type=range id=seek min=0 max=1000 value=0 style="width:180px" aria-label="Seek position">
 <span id=time>0:00/0:00</span>
 <span class="meters" title="Live output fed to left/right ear"><i id=mL></i><i id=mR></i></span>
 <button id=back aria-label="Back 10 seconds">−10s</button><button id=fwd aria-label="Forward 10 seconds">+10s</button>
 <label>Master <input type=range id=mvol min=0 max=2.5 step=0.05 value=0.9 style="width:100px" aria-label="Master volume"></label></div>
 </section>
-<section class="sec" aria-labelledby="h-head"><h4 id="h-head">Head tracking</h4>
+<section class="sec" aria-label="Head tracking"><details class="group" id=headGroup>
+<summary>Head tracking <span class="meta" id=headMeta>manual</span></summary>
+<div class="gbody">
 <div class="ctl"><button id=motion class=tint>Head track</button>
 <button id=center>Center</button>
 <label><input type=checkbox id=uni checked> Manual (no sensor)</label>
 <label>Turn <input type=range id=yaw min=0 max=360 value=0 style="width:90px" aria-label="Manual turn"></label>
 <label>Look <input type=range id=look min=-60 max=60 value=0 style="width:80px" aria-label="Manual look up down"></label>
 <label>Response <input type=range id=sens min=0.5 max=2 step=0.1 value=1 style="width:70px" aria-label="Tracking sensitivity"></label></div>
-</section>
-<section class="sec" aria-labelledby="h-app"><h4 id="h-app">Appearance</h4>
+<p class=hint>Uses this device's motion sensors (phone/tablet). It cannot read AirPods sensors. Center re-zeroes the stage.</p>
+</div></details></section>
+<section class="sec" aria-label="Appearance and Liquid Glass"><details class="group" id=appGroup>
+<summary>Appearance <span class="meta" id=appMeta>System</span></summary>
+<div class="gbody">
 <div class="seg" role="group" aria-label="Appearance"><button data-app="" aria-pressed="true">System</button><button data-app=light aria-pressed="false">Light</button><button data-app=dark aria-pressed="false">Dark</button></div>
-<p class=hint>System follows your device's Light or Dark setting. An explicit choice overrides it and is remembered on this device.</p>
-</section>
-<section class="sec" aria-labelledby="h-look"><h4 id="h-look">Liquid Glass</h4>
-<div class="ctl" id=hudGlass><label style="width:100%">Transparency <input type=range id=glassAmt min=0 max=100 step=1 value=65 aria-label="Liquid Glass transparency, ultra clear to fully tinted"></label>
+<p class=hint>System follows your device's Light or Dark setting. An explicit choice overrides it and is remembered here.</p>
+<div class="ctl" id=hudGlass><label style="width:100%">Liquid Glass <input type=range id=glassAmt min=0 max=100 step=1 value=65 aria-label="Liquid Glass transparency, ultra clear to fully tinted"></label>
 <div class="ends" style="width:100%"><span>ultra clear</span><span>fully tinted</span></div></div>
-<p class=hint>iOS&nbsp;27 lets you dial the glass from ultra clear to fully tinted. Set by the Appearance control above; Reduce Transparency and Increase Contrast are honored.</p>
-</section>
+<p class=hint>iOS&nbsp;27 lets you dial the glass from ultra clear to fully tinted. Reduce Transparency and Increase Contrast are honored.</p>
+</div></details></section>
 </div>
 <div class="col-ctl">
-<section class="row sec" data-panel="source" aria-labelledby="h-src"><h4 id="h-src">Source</h4>
+<section class="sec" id="panel-source" data-panel="source" aria-label="Source">
+<details class="group" open>
+<summary>Your audio <span class="meta">upload or link</span></summary>
+<div class="gbody">
 <div class="ctl"><input type=file id=f accept="audio/*" aria-label="Upload an audio file"></div>
+<div class="ctl"><input id=url placeholder="…or paste a direct mp3/ogg link" aria-label="Paste a direct audio link"><button id=loadUrl>Load link</button></div>
+</div></details>
+<details class="group">
+<summary>Bundled demos <span class="meta">7 · CC-BY</span></summary>
+<div class="gbody">
 <div class="ctl"><label>Demo <select id=demo><option value="">choose a demo track…</option></select></label><button id=loadDemo>Load demo</button></div>
-<p class=hint>Seven 24-second CC-BY excerpts, including two Indian-fusion selections (not Bollywood film songs). Loading plays the original mix on a stereo pair — press Play. Map stems splits prepared vocals, drums, bass and other instruments onto four boxes (experimental separation is lossy). All parts / Vocals only buttons audition each part. Demos require HTTP(S); press Play to hear. Height/front-back perception varies.</p>
+<p class=hint>Seven 24-second CC-BY excerpts, including two Indian-fusion selections (not Bollywood film songs). Loading plays the original mix on a stereo pair — press Play. Map stems (Rig) splits prepared vocals, drums, bass and other instruments onto four boxes; experimental separation is lossy. Demos require HTTP(S).
+</p>
 <div class="ctl" id=demoSolo hidden><span>Audition:</span><button data-solo="">All parts</button><button data-solo=vocals>Vocals only</button><button data-solo=drums>Drums only</button><button data-solo=bass>Bass only</button><button data-solo=other>Other only</button></div>
 <p id=demoCredit class=hint></p>
-<div class="ctl" id=quick><span class="hint" style="width:100%">Browse free music</span>
+</div></details>
+<details class="group">
+<summary>Browse free music <span class="meta">Archive.org · Audius</span></summary>
+<div class="gbody">
+<div class="ctl" id=quick><span class="hint" style="width:100%">One-tap searches</span>
 <button data-q="Indian classical music">Indian classical</button><button data-q="Hindustani classical raga">Hindustani</button><button data-q="Carnatic music">Carnatic</button><button data-q="Bhangra">Bhangra</button><button data-q="Punjabi folk">Punjabi</button><button data-q="Ghazal">Ghazal</button><button data-q="Qawwali">Qawwali</button><button data-q="Bollywood songs">Bollywood</button><button data-q="sitar tabla">Sitar &amp; tabla</button><button data-q="Indian devotional bhajan">Devotional</button><button data-q="Indian film music">Indian film</button><button data-q="jazz">Jazz</button><button data-q="electronic music">Electronic</button><button data-q="world music">World</button></div>
 <div class="ctl"><select id=prov aria-label="Free music catalog"><option value=archive>Archive.org</option><option value=audius>Audius</option></select>
 <input id=q placeholder="search free music…" aria-label="Search free music">
 <button id=search>Search</button></div>
 <ol id=res></ol>
-<div class="ctl"><input id=url placeholder="…or paste a direct mp3/ogg link" aria-label="Paste a direct audio link"><button id=loadUrl>Load link</button></div>
+</div></details>
 <p id=stat role="status" aria-live="polite"></p>
 </section>
-<section class="row sec" data-panel="room" aria-labelledby="h-room"><h4 id="h-room">Room</h4>
+<section class="sec" id="panel-room" data-panel="room" aria-label="Room">
+<details class="group">
+<summary>Room size <span class="meta" id=roomMeta>10 × 10 × 10 m</span></summary>
+<div class="gbody">
 <div class="ctl"><label>W <input type=number id=rw value=10 min=2 max=30 step=0.5 aria-label="Room width meters"></label>
 <label>L <input type=number id=rl value=10 min=2 max=30 step=0.5 aria-label="Room length meters"></label>
 <label>H <input type=number id=rh value=10 min=2 max=10 step=0.5 aria-label="Room height meters"></label></div>
+<p class=hint>Changing the size keeps speakers, listener and furniture inside the walls.</p>
+</div></details>
+<details class="group">
+<summary>Reflections &amp; reverb <span class="meta" id=verbMeta>on · 5%</span></summary>
+<div class="gbody">
 <div class="ctl"><label><input type=checkbox id=walls checked> Wall reflections</label>
 <label>Absorb <input type=range id=wallAbs min=0.1 max=0.9 step=0.05 value=0.5 aria-label="Wall absorption"></label>
 <label>Room verb <input type=range id=roomAmt min=0 max=0.4 step=0.01 value=0.05 style="width:80px" aria-label="Late reverb amount"></label>
 <label><input type=checkbox id=air> Air dulls far</label></div>
+<p class=hint>Reflections are six first-order image sources per box; the late tail is a synthetic decay. Both are approximations, not a measured room.</p>
+</div></details>
+<details class="group">
+<summary>Material &amp; preset <span class="meta" id=matMeta>Empty · Custom</span></summary>
+<div class="gbody">
 <div class="ctl"><label>Room softness <select id=furn><option>Empty</option><option>Furnished</option><option>Cluttered</option></select></label>
 <label>Preset <select id=preset title="One-tap room tune. Sets reflections, absorption, reverb, softness and air — layout and speakers untouched."><option value="">Custom</option><option>Studio</option><option>Living Room</option><option>Concert Hall</option><option>Club</option><option>Cathedral</option><option>Outdoor</option></select></label></div>
+<p class=hint>A preset only retunes the room — your layout and speakers stay put. Touch any control here afterwards and it returns to Custom.</p>
+</div></details>
+<details class="group">
+<summary>Furniture <span class="meta" id=furnMeta>none</span></summary>
+<div class="gbody">
 <div class="ctl"><button id=addBed>Add bed</button><button id=addSofa>Add sofa</button><button id=addWardrobe>Add wardrobe / almirah</button></div>
-<div id=furniture></div><p class=hint>Furniture coordinates and dimensions are meters. Softness/absorption and blocked-path filtering are adjustable approximations, not a measured room replica. Hard cupboards do not absorb like upholstery.</p>
+<div id=furniture></div>
+<p class=hint>Coordinates and dimensions are meters. Softness/absorption and blocked-path filtering are adjustable approximations. Hard cupboards do not absorb like upholstery.</p>
+</div></details>
 </section>
-<section class="row sec" data-panel="rig" aria-labelledby="h-rig"><h4 id="h-rig">Rig</h4>
+<section class="sec" id="panel-rig" data-panel="rig" aria-label="Rig">
+<details class="group" open>
+<summary>Speakers <span class="meta" id=rigMeta>2 boxes</span></summary>
+<div class="gbody">
 <div class="ctl"><button id=addSp>Add full</button>
 <button id=addTw>Add tweeter</button>
 <button id=addSub>Add sub</button>
-<button id=stage8>9-box stage</button>
-<button id=mapStems style="display:none">Map stems</button>
+<button id=stage8>9-box stage</button></div>
+<p class=hint>Tap a cabinet to select it, then edit it on the Stage tab. Delete or the keyboard's Delete key removes the selected box.</p>
+</div></details>
+<details class="group">
+<summary>Stems <span class="meta">split &amp; place</span></summary>
+<div class="gbody">
+<div class="ctl"><button id=mapStems style="display:none">Map stems</button>
 <button id=openStems>Stems…</button></div>
+<p class=hint>Stems separates a track in your browser (large model download) and saves the parts locally. Map stems places vocals, drums, bass and other onto four boxes.</p>
+</div></details>
 </section>
-<section class="row sec" data-panel="sound" aria-labelledby="h-snd"><h4 id="h-snd">Sound</h4>
-<div class="ctl"><label>Test tone <select id=testFreq><option value=80>Bass · 80 Hz</option><option value=1000 selected>Mid · 1 kHz</option><option value=6000>Treble · 6 kHz</option></select></label><button id=tL>Test L</button><button id=tR>Test R</button>
-<label>Balance <input type=range id=bal min=-1 max=1 step=0.1 value=0 style="width:100px" aria-label="Left right balance"></label>
-<label><input type=checkbox id=hq> Precise imaging <span class="hint">(experimental — off = classic engine)</span></label>
-<label>Width <input type=range id=width min=0 max=2 step=0.05 value=1 style="width:90px" aria-label="Stereo width, 0 mono, 1 record, 2 hyper wide"></label>
-<label><input type=checkbox id=align checked> Time-align rig</label>
-<label><input type=checkbox id=swap> Swap L/R</label>
-<label>L trim <input type=range id=trimL min=0 max=1.5 step=0.05 value=1 style="width:70px" aria-label="Left ear trim" title="Output-level trim per ear — compensates bud imbalance"></label>
-<label>R trim <input type=range id=trimR min=0 max=1.5 step=0.05 value=1 style="width:70px" aria-label="Right ear trim" title="Output-level trim per ear — compensates bud imbalance"></label>
-<label>Headphone EQ <select id=hpdev title="Optional measurement-based starting points, not personal calibration"><option value="">None / bypass</option><option>AirPods Pro 2 (ANC)</option><option>AirPods 4</option><option>AirPods 4 (ANC)</option><option>EarPods</option><option value="pro3">AirPods Pro 3 — uncalibrated / bypass</option></select></label></div>
+<section class="sec" id="panel-sound" data-panel="sound" aria-label="Sound">
+<details class="group">
+<summary>Test &amp; balance <span class="meta" id=balMeta>centered</span></summary>
+<div class="gbody">
+<div class="ctl"><label>Test tone <select id=testFreq><option value=80>Bass · 80 Hz</option><option value=1000 selected>Mid · 1 kHz</option><option value=6000>Treble · 6 kHz</option></select></label><button id=tL>Test L</button><button id=tR>Test R</button></div>
+<div class="ctl"><label>Balance <input type=range id=bal min=-1 max=1 step=0.1 value=0 style="width:100px" aria-label="Left right balance"></label></div>
+<p class=hint>Diagnostic tones bypass the room, EQ and trims; they compare ears, not the file.</p>
+</div></details>
+<details class="group">
+<summary>Imaging <span class="meta" id=engMeta>classic</span></summary>
+<div class="gbody">
+<div class="ctl"><label><input type=checkbox id=hq> Precise imaging <span class=hint>(experimental — off = classic engine)</span></label>
+<label>Width <input type=range id=width min=0 max=2 step=0.05 value=1 style="width:90px" aria-label="Stereo width, 0 mono, 1 record, 2 hyper wide"></label></div>
+<div class="ctl"><label><input type=checkbox id=align checked> Time-align rig</label>
+<label><input type=checkbox id=swap> Swap L/R</label></div>
+<p class=hint>Classic is equal-power panning with distance gain. Precise adds interaural delay/level and head-shadow filtering — experimental, not a personalized HRTF.</p>
+</div></details>
+<details class="group">
+<summary>Headphone correction <span class="meta" id=eqMeta>bypass</span></summary>
+<div class="gbody">
+<div class="ctl"><label>Headphone EQ <select id=hpdev title="Optional measurement-based starting points, not personal calibration"><option value="">None / bypass</option><option>AirPods Pro 2 (ANC)</option><option>AirPods 4</option><option>AirPods 4 (ANC)</option><option>EarPods</option><option value="pro3">AirPods Pro 3 — uncalibrated / bypass</option></select></label></div>
+<div class="ctl"><label>L trim <input type=range id=trimL min=0 max=1.5 step=0.05 value=1 style="width:70px" aria-label="Left ear trim" title="Output-level trim per ear — compensates bud imbalance"></label>
+<label>R trim <input type=range id=trimR min=0 max=1.5 step=0.05 value=1 style="width:70px" aria-label="Right ear trim" title="Output-level trim per ear — compensates bud imbalance"></label></div>
 <p class=hint>EQ: AutoEq / crinacle 711 (Pro 2 ANC), RTINGS B&amp;K 5128 (AirPods 4), RTINGS HMS II.3 (EarPods; connector revision unverified). Fit and listening mode change response. Pro 3 numerical correction was not verified here. Preset preamp reductions preserve headroom.</p>
+</div></details>
 <p class=hint>Start at low system volume. Extra gain can distort; the output ceiling is not hearing protection. Use stereo output, avoid the Bluetooth headset microphone, and disable other spatializers/EQ when comparing. This page cannot control AirPods ANC or read their head sensors.</p>
 <details class=hint><summary>Research &amp; calibration limits</summary><p>Furniture absorption and occlusion are simplified, not a wave simulation; low-frequency room modes and edge diffraction are not solved. Exact replication needs measured room/binaural impulse responses, source directivity, and personal headphone/HRTF calibration.</p><p><a href="https://github.com/jaakkopasanen/AutoEq">AutoEq measurements and filters</a> · <a href="https://odeon.dk/learn/articles/room-acoustics/">ODEON room acoustics</a> · <a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/bluetooth/bluetooth-classic-audio">Windows Bluetooth audio</a></p></details>
 </section>
@@ -308,7 +385,7 @@ footer a{color:var(--blue)}
 <button class="tab" role="tab" data-tab=sound aria-selected=false aria-controls="h-snd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-4M8 17V7M12 20V4M16 17V7M20 14v-4"/></svg>Sound</button>
 <button class="tab prominent" role="tab" data-tab=stage aria-selected=true aria-controls="h-stage"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="2.5"/><path d="M7 17v3M17 17v3M6 7V5h12v2"/></svg>Stage</button>
 </nav>
-<footer class="hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · ears at 1.6m · build stage-art-1</footer>
+<footer class="hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · ears at 1.6m · build grouped-1</footer>
 <script>
 // ponytail: mono-feed per speaker (stereo->HRTF sounds phasey/left-biased). L/R split restores separation.
 let AC, buf, playing=[], live=[], master, verb, wet, comp, balN, trimL=null, trimR=null, anL=null, anR=null;
@@ -1092,8 +1169,22 @@ function showSel(){
 }
 listener.x=room.w/2;listener.y=room.l/2;
 showSel();draw();loadStemsFromCache();
-// iOS 27 shell: one panel per tab on phones (all panels on wide screens), Liquid Glass transparency
-// slider (ultra clear -> fully tinted), uniform toolbar once content scrolls beneath it.
+// live category summaries so a collapsed group still shows its state
+function syncMetas(){
+  const set=(id,v)=>{const el=$(id);if(el)el.textContent=v;};
+  set('roomMeta',room.w+' × '+room.l+' × '+room.h+' m');
+  set('verbMeta',($('walls').checked?'on':'off')+' · abs '+Math.round(+$('wallAbs').value*100)+'% · verb '+Math.round(+$('roomAmt').value*100)+'%');
+  set('matMeta',$('furn').value+' · '+($('preset').value||'Custom'));
+  set('furnMeta',furniture.length?furniture.map(o=>o.type).join(', '):'none');
+  set('rigMeta',sps.length+' box'+(sps.length===1?'':'es'));
+  set('balMeta',Math.abs(+$('bal').value)<0.01?'centered':(+$('bal').value<0?'left '+(Math.round(-$('bal').value*100))+'%':'right '+Math.round(+$('bal').value*100)+'%'));
+  set('engMeta',$('hq').checked?'precise':'classic');
+  set('eqMeta',$('hpdev').value?($('hpdev').value==='pro3'?'Pro 3 · bypass':$('hpdev').value):'bypass');
+  set('headMeta',listener.useSensor?'sensor on':'manual');
+  set('appMeta',appearance||'System');}
+document.addEventListener('input',syncMetas);
+document.addEventListener('change',syncMetas);
+setInterval(syncMetas,1000);
 const TABS=['stage','source','room','rig','sound'];
 function goTab(t){document.body.dataset.tab=t;
   document.querySelectorAll('.tabbar .tab').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
@@ -1123,4 +1214,5 @@ document.querySelector('.seg').addEventListener('click',e=>{const b=e.target.clo
   appearance=b.dataset.app;try{localStorage.setItem('appearance',appearance);}catch(_){}
   applyAppearance();});
 applyAppearance();
+syncMetas();
 </script>

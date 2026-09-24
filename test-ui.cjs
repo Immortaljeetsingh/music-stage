@@ -9,6 +9,7 @@ const {chromium}=require('playwright');
   const browser=await chromium.launch(process.env.BROWSER_PATH?{executablePath:process.env.BROWSER_PATH}:{channel:'chrome'});
   const hasTabs=page=>page.evaluate(()=>getComputedStyle(document.querySelector('.tabbar')).display!=='none');
   const go=async(page,t)=>{if(await hasTabs(page))await page.locator('.tab[data-tab='+t+']').click();};
+  const open=async(page,sel)=>{const g=page.locator('details.group:has('+sel+')');if(await g.count()===0)return;if(!await g.evaluate(e=>e.open))await g.locator('summary').click();};
   try{
     for(const width of [320,390,768,1280]){
       const page=await browser.newPage({viewport:{width,height:900},hasTouch:true});
@@ -17,20 +18,26 @@ const {chromium}=require('playwright');
       const tabs=await hasTabs(page);
       assert.equal(tabs,width<900,'tab bar shown only on phone/tablet widths, at '+width);
       assert.equal(await page.locator('.tabbar .tab').count(),5,'five tabs at '+width);
-      // every panel reachable, and its primary control actually visible
+      // first view is clean: categories collapsed except the two obvious entry points
+      const openCount=await page.evaluate(()=>[...document.querySelectorAll('details.group')].filter(d=>d.open).map(d=>d.querySelector('summary').textContent.trim().split(' ')[0]));
+      assert(openCount.length<=2,'few groups open on arrival at '+width+' -> '+openCount.join(','));
+      // every panel reachable, and its primary control reachable through its category row
       const KEYS={stage:'#play',source:'#loadDemo',room:'#addBed',rig:'#addSp',sound:'#tL'};
       for(const [t,sel] of Object.entries(KEYS)){
         await go(page,t);
+        await open(page,sel);
         assert(await page.locator(sel).isVisible(),t+' panel exposes '+sel+' at '+width);
       }
       // Liquid Glass transparency slider drives the material scale
       await go(page,'stage');
+      await open(page,'#glassAmt');
       const g0=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--glass-opacity-scale'));
       await page.evaluate(()=>{const g=$('glassAmt');g.value=0;g.dispatchEvent(new Event('input'));});
       const g1=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--glass-opacity-scale'));
       assert(g0!==g1,'glass slider changes material opacity at '+width);
       await page.evaluate(()=>{const g=$('glassAmt');g.value=65;g.dispatchEvent(new Event('input'));});
       // appearance: System follows the device, an explicit choice overrides and survives reload
+      await open(page,'.seg');
       const ap0=await page.evaluate(()=>[document.documentElement.getAttribute('data-appearance'),getComputedStyle(document.body).backgroundColor]);
       assert.equal(ap0[0],'light','System follows device appearance at '+width);
       await page.locator('.seg [data-app=dark]').click();
@@ -40,6 +47,8 @@ const {chromium}=require('playwright');
       assert.notEqual(apDark[1],ap0[1],'palette actually changes at '+width);
       await page.reload();
       assert.equal(await page.evaluate(()=>document.documentElement.getAttribute('data-appearance')),'dark','appearance persists across reload at '+width);
+      await go(page,'stage');
+      await open(page,'.seg');
       await page.locator('.seg [data-app=""]').click();
       assert.deepEqual(await page.evaluate(()=>[document.documentElement.getAttribute('data-appearance'),getComputedStyle(document.body).backgroundColor]),ap0,'System restores device appearance at '+width);
       const pxSys=await page.evaluate(()=>x2.getImageData(450,300,1,1).data.join());
@@ -48,6 +57,7 @@ const {chromium}=require('playwright');
       // furniture: add in Room, drag on the Stage canvas, read fields back in Room
       for(const [type,id] of [['Bed','addBed'],['Sofa','addSofa'],['Wardrobe','addWardrobe']]){
         await go(page,'room');
+        await open(page,'#'+id);
         await page.locator('#'+id).click();
         await page.evaluate(()=>{sps.forEach(s=>s.x=5);listener.x=5;draw();});
         await go(page,'stage');
@@ -76,6 +86,7 @@ const {chromium}=require('playwright');
       }
       // presets apply their exact control values; manual tweak returns selector to Custom
       await go(page,'room');
+      await open(page,'#preset');
       const presets=await page.evaluate(()=>Object.keys(PRESETS));
       assert(presets.length>=6,'presets present: '+presets.length);
       for(const name of presets){

@@ -11,10 +11,12 @@ const {spawn}=require('node:child_process');
     await page.goto('http://localhost:8931/index.html');
     await page.waitForFunction(()=>document.querySelectorAll('#demo option').length===8);
     const go=async t=>page.locator('.tab[data-tab='+t+']').click(); // phone layout: one panel per tab
+    const open=async sel=>{const g=page.locator('details.group:has('+sel+')');if(await g.count()===0)return;if(!await g.evaluate(e=>e.open))await g.locator('summary').click();};
     const options=await page.locator('#demo option').count();
     assert.equal(options,8,'seven demos listed');
     for(const id of ['71178','71068','46603','46258','70823','59581','40166']){
       await go('source');
+      await open('#loadDemo');
       await page.selectOption('#demo',id);
       await page.locator('#loadDemo').click();
       await page.waitForFunction(()=>!document.getElementById('loadDemo').disabled,null,{timeout:30000});
@@ -38,6 +40,7 @@ const {spawn}=require('node:child_process');
         return [anL,anR].every(an=>{const a=new Float32Array(an.fftSize);an.getFloatTimeDomainData(a);return Math.sqrt(a.reduce((s,v)=>s+v*v,0)/a.length)>0.0005;});
       },null,{timeout:10000});
       await go('rig');
+      await open('#mapStems');
       await page.locator('#mapStems').click(); // separated rig is opt-in
       const rig=await page.evaluate(()=>({n:sps.length,stems:sps.map(s=>s.stem),solo:!$('demoSolo').hidden}));
       assert.equal(rig.n,4,'4-box stem rig for '+id);

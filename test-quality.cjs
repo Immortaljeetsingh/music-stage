@@ -43,13 +43,46 @@ const {chromium}=require('playwright');
       setup({amp:0.7,freq:15000,mvol:2.5,x:3,y:3.6}); // close + hot: forces ceiling clip
       const d=(await run()).getChannelData(0);
       const aliasDb=20*Math.log10(gz(d,3000)/gz(d,15000)); // 45k 3rd harmonic folds to 3k at 1x
-      return {rel,stepDb,aliasDb};
+      // 4) program-level safety on the default 10x10x10 stage: no clipping, no DC, sane level,
+      //    and the 9-box rig must stay under the ceiling too
+      const program=async seconds=>{
+        if(playing.length)stopPb();
+        AC=new OfflineAudioContext(2,Math.ceil(48000*seconds),48000);
+        buf=AC.createBuffer(2,AC.length,48000);
+        for(let ch=0;ch<2;ch++){const a=buf.getChannelData(ch);
+          for(let i=0;i<a.length;i++){const t=i/48000;
+            a[i]=0.32*(Math.sin(2*Math.PI*110*t)+0.5*Math.sin(2*Math.PI*440*t)+0.25*Math.sin(2*Math.PI*3000*t))/1.75
+              +0.08*Math.sin(2*Math.PI*55*t)*Math.exp(-((t%0.5)*6));}}
+        return AC;};
+      const measure=async out=>{let peak=0,sum=0,dc=0,n=0;
+        for(const ch of[0,1]){const a=out.getChannelData(ch);
+          for(let i=0;i<a.length;i++){const v=a[i];if(Math.abs(v)>peak)peak=Math.abs(v);sum+=v*v;dc+=v;n++;}}
+        return {peak,rms:Math.sqrt(sum/n),dc:Math.abs(dc/n)};};
+      // default two-box rig, app defaults (10x10x10, walls on, 5% verb, master 0.9)
+      AC=await program(2);
+      room={w:10,l:10,h:10};listener.x=5;listener.y=5;listener.yaw=0;listener.pitch=0;
+      sps=[{x:2,y:2,h:1.6,v:1,ch:'L',band:'Full'},{x:8,y:2,h:1.6,v:1,ch:'R',band:'Full'}];
+      furniture.length=0;$('hq').checked=false;$('mvol').value=0.9;$('walls').checked=true;$('roomAmt').value=0.05;
+      startPb(0);
+      const two=await measure(await AC.startRendering());
+      // 9-box rig (4 fulls + 4 tweeters + sub), precise engine
+      AC=await program(2);
+      $('hq').checked=true;
+      $('stage8').onclick.call($('stage8'));
+      startPb(0);
+      const nine=await measure(await AC.startRendering());
+      return {rel,stepDb,aliasDb,two,nine};
     });
     console.log('rel to 1kHz (dB):',m.rel,'| step:',m.stepDb.toFixed(2),'dB | alias@3k:',m.aliasDb.toFixed(1),'dB');
     for(const f of['100','10000','14000'])assert(Math.abs(m.rel[f])<1.5,`${f}Hz deviates ${m.rel[f].toFixed(2)}dB`);
     assert(Math.abs(m.stepDb-20)<0.5,`nonlinear: 20dB in became ${m.stepDb.toFixed(2)}dB out`);
     assert(m.aliasDb<-30,`clip aliases only ${m.aliasDb.toFixed(1)}dB below fundamental`);
+    for(const [name,r] of[['two-box',m.two],['9-box precise',m.nine]]){
+      assert(r.peak<=0.9501,`${name} clips: peak ${r.peak.toFixed(3)}`);
+      assert(r.rms>0.005&&r.rms<0.35,`${name} level out of range: rms ${r.rms.toFixed(4)}`);
+      assert(r.dc<1e-3,`${name} DC offset ${r.dc.toExponential(2)}`);}
+    console.log(`program: two-box peak ${m.two.peak.toFixed(3)} rms ${m.two.rms.toFixed(3)} | 9-box peak ${m.nine.peak.toFixed(3)} rms ${m.nine.rms.toFixed(3)}`);
     assert.deepEqual(errors,[]);
-    console.log('PASS: flat passband 100Hz-14kHz, level-linear (limiter idle), ceiling clip without aliasing.');
+    console.log('PASS: flat passband, level-linear, no clip aliasing; program stays clean and unclipped on 2-box and 9-box rigs.');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
