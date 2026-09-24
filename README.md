@@ -13,7 +13,18 @@ A browser-based listening room: arrange virtual speakers and furniture, move a l
 5. Add a bed, sofa, or wardrobe/almirah in **Room**. Drag its visible top or side with a mouse or finger. Numeric controls provide precise dimensions, coordinates, and estimated absorption. Objects remain inside the room.
 6. Adjust room reflections, absorption, softness, and late reverb — or pick a one-tap **Preset** (Studio, Living Room, Concert Hall, Club, Cathedral, Outdoor). Presets only retune the room; your layout and speakers stay put. Touching any room control afterwards returns the selector to Custom. Furniture movement updates direct-path obstruction while playback continues.
 
-On mobile, drag directly on the room canvas; scroll using the surrounding page. Transport appears before the other control sections. Numeric controls remain an alternative to dragging.
+On phones and tablets the app uses an iOS-style tab bar: **Source**, **Room**, **Rig**, **Sound**, plus a separate prominent **Stage** tab (stage, selected speaker, transport, head tracking, appearance). One panel is shown at a time; drag directly on the room canvas and scroll within the panel. Numeric controls remain an alternative to dragging.
+
+## Interface (iOS 27 / Liquid Glass)
+
+The shell follows Apple's iOS 27 design language, built from the WWDC26 material updates and measured iOS 27 UI-kit values rather than a generic dark theme:
+
+- **Liquid Glass material:** translucency with stronger diffusion, a darkened light-grey edge ring (`#a6a6a6` dark / `#dbdbdb` light, 0.5px, zero blur), static specular highlights on the top and bottom edges (inset shadows at ±40px / −40px spread), and 34px regular-glass corner radii.
+- **Transparency slider (Stage → Liquid Glass):** the iOS 27 system control, implemented in-page — *ultra clear* → *fully tinted* scales material opacity and diffusion and persists in `localStorage`.
+- **Uniform toolbar:** the floating glass header turns opaque with a hairline bottom border once content scrolls beneath it (iOS 27's uniform scroll-edge treatment, hard blur + border).
+- **Prominent Tab:** the Stage tab sits in its own trailing capsule, the iOS 27 role that replaced the search-only slot.
+- **Controls:** 44pt minimum hit targets, iOS switch toggles (label leading, control trailing), iOS sliders with 28pt thumbs, tinted glass buttons, and a pressed-state scale animation.
+- **Appearance:** follows the system Light/Dark setting; `prefers-reduced-transparency`, `prefers-contrast: more`, and `prefers-reduced-motion` are honored, and safe-area insets are respected on notched devices.
 
 ## Sound controls and balance
 
@@ -106,7 +117,7 @@ node test-quality.cjs
 
 The demo test also needs Python on PATH; it serves this folder temporarily on port 8931 and checks all seven bundles, synchronized decoded lengths, stereo output, attribution and solo controls.
 
-`test.cjs` renders actual Web Audio through Chrome's OfflineAudioContext and checks centered bass/treble symmetry with reflections in both engines. `test-quality.cjs` renders the real playback graph and asserts a flat dry passband (±1.5 dB to 14 kHz), level linearity (limiter idle on normal program), and no alias products when the output ceiling clips. `test-ui.cjs` checks mouse and real browser touch input for bed, sofa, and wardrobe dragging at mobile/desktop sizes, coordinate synchronization, bounds, and overflow. These tests do not verify perceived realism on a physical headset. No lint/typecheck command is configured.
+`test.cjs` renders actual Web Audio through Chrome's OfflineAudioContext and checks centered bass/treble symmetry with reflections in both engines. `test-quality.cjs` renders the real playback graph and asserts a flat dry passband (±1.5 dB to 14 kHz), level linearity (limiter idle on normal program), and no alias products when the output ceiling clips. `test-ui.cjs` checks the iOS 27 shell: tab-bar reachability for every panel, 44pt hit targets, preset wiring, furniture dragging with mouse and real touch, the Liquid Glass slider, Light and Dark appearances, and overflow at 320/390/768/1280. These tests do not verify perceived realism on a physical headset. No lint/typecheck command is configured.
 
 ## Hosting and limitations
 

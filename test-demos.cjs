@@ -10,9 +10,11 @@ const {spawn}=require('node:child_process');
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.goto('http://localhost:8931/index.html');
     await page.waitForFunction(()=>document.querySelectorAll('#demo option').length===8);
+    const go=async t=>page.locator('.tab[data-tab='+t+']').click(); // phone layout: one panel per tab
     const options=await page.locator('#demo option').count();
     assert.equal(options,8,'seven demos listed');
     for(const id of ['71178','71068','46603','46258','70823','59581','40166']){
+      await go('source');
       await page.selectOption('#demo',id);
       await page.locator('#loadDemo').click();
       await page.waitForFunction(()=>!document.getElementById('loadDemo').disabled,null,{timeout:30000});
@@ -27,22 +29,26 @@ const {spawn}=require('node:child_process');
       });
       assert(info.sps===2&&info.precise&&!info.solo&&info.credit.includes('CC BY'),'mix rig loaded for '+id);
       assert(info.energies.every(v=>v>0.001),'all stems have energy '+id);
+      await go('stage');
       await page.locator('#play').click();
       await page.waitForFunction(()=>{
         if(!anL||!anR)return false;
         return [anL,anR].every(an=>{const a=new Float32Array(an.fftSize);an.getFloatTimeDomainData(a);return Math.sqrt(a.reduce((s,v)=>s+v*v,0)/a.length)>0.0005;});
       },null,{timeout:10000});
+      await go('rig');
       await page.locator('#mapStems').click(); // separated rig is opt-in
       const rig=await page.evaluate(()=>({n:sps.length,stems:sps.map(s=>s.stem),solo:!$('demoSolo').hidden}));
       assert.equal(rig.n,4,'4-box stem rig for '+id);
       assert.deepEqual(rig.stems,['vocals','drums','other','bass'],'stem mapping for '+id);
       assert(rig.solo,'audition controls appear after Map stems');
+      await go('source');
       await page.locator('[data-solo=vocals]').click();
       const mutes=await page.evaluate(()=>sps.map(s=>s.mute));
       assert.deepEqual(mutes,[false,true,true,true],'vocals solo mutes others '+id);
       await page.locator('[data-solo=""]').click();
       const mutes2=await page.evaluate(()=>sps.map(s=>s.mute));
       assert.deepEqual(mutes2,[false,false,false,false],'all-parts unmutes '+id);
+      await go('stage');
       await page.locator('#play').click();
       console.log(id,'ok',info.credit.split(' — ')[0],info.energies.map(v=>v.toFixed(3)).join('/'));
     }

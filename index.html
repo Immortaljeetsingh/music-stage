@@ -1,89 +1,241 @@
 <!doctype html>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Music Stage — Spatial Audio Room</title>
 <style>
-*{box-sizing:border-box}
-body{font-family:system-ui;background:#0e1116;color:#e8ecf1;margin:0;padding:12px;max-width:1100px;margin-inline:auto}
-h3{margin:6px 0 10px;letter-spacing:.5px}
-canvas{border:1px solid #2b3542;border-radius:10px;width:100%;height:auto;aspect-ratio:3/2;touch-action:none;background:#11161d;display:block}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center;background:#161c25;border:1px solid #232c39;border-radius:10px;padding:8px 10px}
-button{background:#233043;color:#e8ecf1;border:1px solid #33445a;border-radius:8px;padding:8px 14px;cursor:pointer;min-height:40px;font-size:15px}
-button:hover{background:#2d3f57}
-button#play{background:#14532d;border-color:#1f7a42;font-weight:700}
-input[type=number]{width:60px;background:#0e1319;color:#e8ecf1;border:1px solid #33445a;border-radius:6px;padding:6px;font-size:15px}
-input[type=text]{background:#0e1319;color:#e8ecf1;border:1px solid #33445a;border-radius:6px;padding:8px;font-size:15px}
-select{background:#0e1319;color:#e8ecf1;border:1px solid #33445a;border-radius:6px;padding:8px;font-size:15px;max-width:100%}
-input[type=range]{accent-color:#38bdf8;min-height:32px}
-input[type=file]{max-width:100%;font-size:14px}
-#stat{color:#7dd3fc;min-height:1.2em;margin:4px 0 0}
-#res{margin:0;padding-left:22px;width:100%}
-#res li{margin:6px 0}
-.hint{font-size:12px;color:#a7b3c2}
-.top h3{margin:2px 0;font-size:22px;letter-spacing:.5px}
-.top .sub{margin:0 0 2px;color:#a7b3c2;font-size:13px}
-.sec h4{margin:0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#8fa1b8;white-space:nowrap}
-.sec h4 span{display:inline-block;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;border-radius:6px;padding:1px 7px;margin-right:7px;font-size:11px}
-.sec{flex-direction:column;align-items:stretch;gap:10px;flex-wrap:nowrap} /* nowrap: column+wrap let a wide select widen the whole line */
-.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.stage{background:#161c25;border:1px solid #232c39;border-radius:10px;padding:8px 10px;margin:8px 0}
-.stagebar{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
-.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:10px;align-items:start}
-.col-stage{position:sticky;top:8px}
-.col-ctl{display:flex;flex-direction:column;gap:0;min-width:0}
-.col-ctl .sec{margin:0 0 10px}
-@media(max-width:900px){.layout{grid-template-columns:1fr}.col-stage{position:static}.stage{position:sticky;top:0;z-index:5}}
-.stagebar h4{margin:0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#8fa1b8}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
-.meters{display:inline-flex;gap:3px;align-items:flex-end;height:24px;padding:0 4px}
-.meters i{display:block;width:9px;min-height:2px;background:#38bdf8;border-radius:2px}
-.meters #mR{background:#22c55e}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
-@media(max-width:640px){body{padding:8px}button{flex:1 1 auto}#seek{flex:1 1 100%}}
-:root{color-scheme:dark}
-body{max-width:1440px;padding:28px;background:radial-gradient(ellipse at 15% 0%,#15302e 0,transparent 45%),#090e14;color:#e5edf4;font-size:14px}
-.top{display:flex;align-items:center;justify-content:space-between;padding:0 4px 26px;gap:20px}
-.top h3{font-size:32px;letter-spacing:-1px;font-weight:750}.top .sub{color:#9cafbb;margin-top:6px}
-.eyebrow{color:#73dcc2;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
-.badge{border:1px solid #34594f;border-radius:30px;padding:9px 14px;color:#8de3c9;font-size:11px;letter-spacing:1px;white-space:nowrap}
-.layout{grid-template-columns:minmax(0,1.75fr) minmax(350px,1fr);gap:20px}
-.row,.stage{background:linear-gradient(145deg,#17212b,#101822);border:1px solid #2a3743;border-radius:16px;box-shadow:0 12px 30px #0002;padding:18px}
-.stage{margin-top:0}.stagebar{align-items:center;margin-bottom:16px;flex-wrap:wrap}.stagebar h4{color:#e6f2ed;letter-spacing:2px}
-canvas{background:radial-gradient(ellipse at 50% 30%,#203039,#0b131c 80%);border:1px solid #2e424d;border-radius:12px;cursor:grab}
-canvas:active{cursor:grabbing}.stage-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;font-size:11px;color:#9bafbf}
-.stage-foot strong{color:#83dfc5;font-weight:500}.sec{gap:16px}.col-ctl .sec{margin-bottom:14px}
-.sec h4{color:#acbecb;font-size:10px;letter-spacing:2px}.sec h4 span{background:#253e40;color:#8bdfce;border:1px solid #355b58;padding:3px 6px}
-.ctl{gap:10px}.ctl label{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;color:#bbcad5;font-size:12px;max-width:100%}
-button{background:linear-gradient(#283a49,#20303f);border-color:#3a5060;min-height:42px;font-size:13px;transition:background .15s, border-color .15s}
-button:hover{background:#33505c;border-color:#73c5b1}button#play{background:#87e3c2;color:#08281c;border-color:#87e3c2;min-width:90px;box-shadow:0 0 22px #79ebbf18}
-input:not([type]),input[type=text],input[type=number],select{background:#0b141e;color:#dce8ef;border:1px solid #354959;border-radius:8px;padding:10px;font:inherit;min-width:0;max-width:100%}
-#q,#url{flex:1 1 140px;width:140px}input[type=file]{width:100%;padding:10px;border:1px dashed #45616b;border-radius:10px;color:#a8bec9;background:#101e27}
-input::file-selector-button{background:#2c4c4b;color:#c8fae9;border:0;border-radius:6px;padding:10px 14px;margin-right:12px;cursor:pointer}
-input[type=range],input[type=checkbox]{accent-color:#83dfc5}input[type=checkbox]{width:18px;height:18px}#stat{color:#9cdcca;overflow-wrap:anywhere;font-size:12px}
-#sel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}#sel>input[type=range]{width:100%!important}#sel>span{grid-column:1/-1;color:#9cafbf;font-size:11px}#sel select{width:100%}
-#time{font:12px ui-monospace,monospace;color:#a9c0cd}.meters{background:#080f17;border:1px solid #334651;border-radius:5px;height:30px;padding:3px 6px}
-footer.row{box-shadow:none;background:transparent;border:0;padding:14px 0;color:#8ca1b1;font-size:11px}
-@media(max-width:1000px){.layout{grid-template-columns:1fr}.col-stage{position:static}.stage{position:static}.col-ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.col-ctl .sec{margin:0}}
-@media(min-width:1001px){.col-stage{max-height:calc(100vh - 16px);overflow:auto}} /* col is ~1100px tall: without a cap the sticky column hides its own bottom (#sel) */
-@media(max-width:600px){body{padding:10px}.top{padding-bottom:16px}.top h3{font-size:24px}.badge{display:none}.layout{gap:12px}.row,.stage{padding:12px}.stagebar .hint{display:none}.stage-foot{font-size:10px;gap:8px}.stage-foot span:nth-child(n+3){display:none}button{min-height:44px;font-size:14px}#seek{flex:1 1 100%;height:34px}#time{font-size:11px}.meters{height:26px}.ctl{gap:8px}.ctl label{font-size:12px}input[type=range]{min-height:36px}#sel,#furniture{grid-template-columns:1fr}.col-ctl{display:flex}.col-ctl .sec{margin-bottom:12px}footer.row{font-size:10px}}
+/* iOS 27 design system (Liquid Glass, refined) — Apple WWDC26/iOS 27 + measured iOS 27 UI kit values:
+   darkened light-grey ring (#a6a6a6 dark / #dbdbdb light, 0.5px, zero blur), specular top/bottom inner
+   shadows (±40y / -40 spread), 34px regular glass radius, hard scroll edge (blur 6 + hairline border),
+   system transparency slider (ultra clear -> fully tinted) as scale vars, Reduce Transparency honored. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+ color-scheme:dark light;
+ --blue:#0A84FF;--green:#30D158;--indigo:#5E5CE6;--orange:#FF9F0A;--red:#FF453A;--teal:#40C8E0;--yellow:#FFD60A;--pink:#FF375F;--purple:#BF5AF2;
+ --label:#fff;--label2:rgba(235,235,245,.62);--label3:rgba(235,235,245,.3);
+ --bg:#000;--glass-rgb:24,24,28;--glass-a:.52;--card-rgb:28,28,30;--card-a:.6;
+ --sep:rgba(84,84,88,.55);--ring:#a6a6a6;--spec:rgba(255,255,255,.16);--fill:rgba(118,118,128,.24);--fill2:rgba(118,118,128,.16);
+ --accent:var(--blue);--on-accent:#fff;
+ --glass-opacity-scale:1;--glass-blur-scale:1;--glass-blur:calc(24px*var(--glass-blur-scale));
+ --r:34px;--r-md:26px;--r-ctl:14px;--shadow:0 20px 50px rgba(0,0,0,.4);
+ --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:light){:root{
+ --label:#000;--label2:rgba(60,60,67,.6);--label3:rgba(60,60,67,.3);
+ --bg:#F2F2F7;--glass-rgb:250,250,252;--glass-a:.62;--card-rgb:255,255,255;--card-a:.72;
+ --sep:rgba(60,60,67,.29);--ring:#dbdbdb;--spec:rgba(255,255,255,.9);--fill:rgba(118,118,128,.16);--fill2:rgba(118,118,128,.12);
+ --shadow:0 20px 50px rgba(0,0,0,.14);}}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--font);font-size:16px;line-height:1.35;color:var(--label);background:var(--bg);
+ margin:0;padding:max(12px,env(safe-area-inset-top)) 16px calc(112px + env(safe-area-inset-bottom));max-width:1440px;margin-inline:auto;
+ min-height:100dvh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:-15%;z-index:-1;pointer-events:none;
+ background:radial-gradient(38% 32% at 16% 10%,rgba(10,132,255,.34),transparent 70%),
+  radial-gradient(42% 36% at 84% 6%,rgba(191,90,242,.26),transparent 70%),
+  radial-gradient(50% 42% at 72% 92%,rgba(48,209,88,.17),transparent 70%),
+  radial-gradient(42% 38% at 8% 88%,rgba(255,55,95,.15),transparent 70%)}
+@media (prefers-color-scheme:light){body::before{opacity:.7}}
+a{color:var(--blue)}
+::selection{background:rgba(10,132,255,.35)}
 
-[hidden]{display:none!important}#demoSolo button[aria-pressed=true]{border-color:#83dfc5;background:#245448}
-details.hint summary{padding:6px 0;cursor:pointer}
-#furniture>.ctl{padding:12px;margin-top:12px;border:1px solid #38515a;border-radius:12px}#furniture strong{flex-basis:100%}#furniture input{width:85px}
-@media(max-width:600px){input[type=number],input[type=text],input:not([type]),select{font-size:16px;min-height:44px}.ctl label:has(>input[type=checkbox]){min-height:44px}.col-ctl .sec:has(#play){order:-1}#sel{grid-template-columns:repeat(2,minmax(0,1fr))}#sel>label{min-width:0}#sel>input[type=range],#sel>span{grid-column:1/-1}#furniture>.ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#furniture strong,#furniture button{grid-column:1/-1}#furniture input{width:100%}.stage-foot{display:none}}
+/* ---- Liquid Glass material ---- */
+.glass{background:rgba(var(--glass-rgb),calc(var(--glass-a)*var(--glass-opacity-scale)));
+ -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(180%);backdrop-filter:blur(var(--glass-blur)) saturate(180%);
+ box-shadow:0 0 0 .5px var(--ring),inset 0 0 0 .5px rgba(255,255,255,.08),inset 0 40px 40px -40px var(--spec),inset 0 -40px 40px -40px var(--spec),var(--shadow)}
+
+/* ---- uniform toolbar (appears opaque + hairline bottom once content scrolls under) ---- */
+.topbar{position:sticky;top:8px;z-index:30;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+ border-radius:var(--r-md);padding:18px 22px;margin-bottom:14px;transition:box-shadow .2s,background .2s}
+body.scrolled .topbar{--glass-opacity-scale:1.35;box-shadow:0 0 0 .5px var(--ring),0 1px 0 .5px var(--sep),0 10px 30px rgba(0,0,0,.28)}
+.topbar .eyebrow{font:700 11px/1 var(--font);letter-spacing:2.4px;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.topbar h1{font:750 32px/1.05 var(--font);letter-spacing:-.6px;margin:0}
+.topbar .sub{margin:6px 0 0;color:var(--label2);font-size:15px}
+.badge{font:600 11px/1 var(--font);letter-spacing:1.2px;text-transform:uppercase;color:var(--label2);
+ border-radius:var(--r-pill,999px);padding:10px 14px;background:var(--fill2);border:.5px solid var(--sep);white-space:nowrap}
+
+/* ---- layout ---- */
+.layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(340px,1fr);gap:18px;align-items:start}
+.col-stage{display:flex;flex-direction:column;gap:14px;min-width:0}
+.col-ctl{display:flex;flex-direction:column;gap:14px;min-width:0}
+@media(min-width:900px){.col-stage{position:sticky;top:calc(96px + env(safe-area-inset-top));max-height:calc(100dvh - 112px);overflow:auto;scrollbar-width:thin}}
+
+/* ---- cards / sections ---- */
+.sec{background:rgba(var(--card-rgb),calc(var(--card-a)*var(--glass-opacity-scale)));
+ -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(170%);backdrop-filter:blur(var(--glass-blur)) saturate(170%);
+ border-radius:var(--r);padding:18px;box-shadow:0 0 0 .5px var(--ring),inset 0 0 0 .5px rgba(255,255,255,.07),inset 0 34px 34px -34px var(--spec),inset 0 -34px 34px -34px var(--spec),var(--shadow);
+ display:flex;flex-direction:column;gap:14px;min-width:0}
+.sec h4{margin:0;font:600 13px/1 var(--font);letter-spacing:.6px;text-transform:uppercase;color:var(--label2)}
+.sec h4 span{color:var(--accent);font-variant-numeric:tabular-nums}
+.hint{margin:0;font-size:13px;line-height:1.45;color:var(--label2)}
+a.hint{color:var(--blue)}
+.hint a{color:var(--blue)}
+details.hint summary{display:flex;align-items:center;min-height:44px;padding:6px 0;cursor:pointer;color:var(--label2);font-weight:600}
+details.hint p+p{margin:8px 0 0}
+.row-line,.ctl label:has(>input[type=checkbox]){justify-content:space-between;width:100%;min-height:44px}
+/* iOS switch rows: label leading, control trailing. Rows that carry an inline note stay compact. */
+.ctl label:has(>input[type=checkbox]){flex-direction:row-reverse}
+.ctl label:has(>input[type=checkbox])>*{order:0}
+.ctl label:has(>input[type=checkbox] .hint){flex-direction:row;width:100%;justify-content:flex-start}
+
+/* ---- controls ---- */
+.ctl{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.ctl label{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;max-width:100%;font-size:15px;color:var(--label)}
+.ctl .hint{font-size:12.5px}
+button{min-height:44px;padding:0 18px;border:0;border-radius:var(--r-ctl);cursor:pointer;touch-action:manipulation;
+ font:590 16px/1.1 var(--font);color:var(--label);background:var(--fill);
+ box-shadow:0 0 0 .5px var(--sep),inset 0 1px 0 rgba(255,255,255,.14);
+ transition:transform .12s ease,background .12s ease,opacity .12s}
+button:hover{background:rgba(118,118,128,.32)}
+button:active{transform:scale(.97);opacity:.85}
+button.tint,button#loadDemo,button#mapStems,button#openStems{background:rgba(10,132,255,.18);box-shadow:0 0 0 .5px rgba(10,132,255,.35),inset 0 1px 0 rgba(255,255,255,.16)}
+button#play{min-width:130px;font-weight:700;background:var(--green);color:#052a12;box-shadow:0 6px 20px rgba(48,209,88,.28)}
+button:disabled{opacity:.4}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,.tab:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+input:not([type]),input[type=text],input[type=number],select{font:400 17px/1.2 var(--font);color:var(--label);
+ background:var(--fill);border:0;border-radius:12px;padding:11px 12px;min-width:0;min-height:44px;max-width:100%;appearance:none}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--label2) 50%),linear-gradient(135deg,var(--label2) 50%,transparent 50%);
+ background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
+input[type=file]{width:100%;font:400 14px/1.3 var(--font);color:var(--label2);background:var(--fill2);border:.5px dashed var(--sep);border-radius:12px;padding:12px}
+input::file-selector-button{font:590 15px var(--font);color:#052a12;background:var(--green);border:0;border-radius:9px;padding:10px 14px;margin:0 12px 0 0;cursor:pointer}
+input[type=range]{appearance:none;-webkit-appearance:none;background:transparent;height:32px;min-height:32px;flex:1 1 130px;max-width:100%;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:rgba(118,118,128,.4)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;
+ box-shadow:0 3px 8px rgba(0,0,0,.4),0 1px 1px rgba(0,0,0,.24);margin-top:-12px}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12)}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:rgba(118,118,128,.4)}
+input[type=range]::-moz-range-thumb{width:28px;height:28px;border:0;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.4)}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:51px;height:31px;border-radius:16px;margin:0;
+ background:rgba(118,118,128,.32);position:relative;transition:background .2s ease;cursor:pointer}
+input[type=checkbox]::after{content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;
+ box-shadow:0 3px 8px rgba(0,0,0,.3),0 1px 1px rgba(0,0,0,.2);transition:transform .2s cubic-bezier(.32,.72,0,1)}
+input[type=checkbox]:checked{background:var(--green)}
+input[type=checkbox]:checked::after{transform:translateX(20px)}
+#stat{min-height:1.3em;margin:0;font-size:13.5px;color:var(--accent)}
+#res{margin:0;padding-left:22px;width:100%;font-size:15px}
+#res li{margin:8px 0}
+#res button{min-height:36px;padding:0 14px;font-size:14px}
+#time{font:500 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--label2)}
+.meters{display:inline-flex;gap:3px;align-items:flex-end;height:28px;padding:3px 6px;background:#0a0a0c;border-radius:8px;box-shadow:0 0 0 .5px var(--sep)}
+.meters i{display:block;width:9px;min-height:2px;border-radius:2px;background:var(--blue)}
+.meters #mR{background:var(--green)}
+
+/* ---- stage ---- */
+.stage{padding:14px;border-radius:var(--r-md)}
+.stagebar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.stagebar h4{margin:0;font:600 13px/1 var(--font);letter-spacing:.6px;text-transform:uppercase;color:var(--label2)}
+canvas{width:100%;height:auto;aspect-ratio:3/2;display:block;touch-action:none;cursor:grab;border-radius:20px;
+ border:.5px solid var(--sep);background:radial-gradient(ellipse at 50% 28%,#1b2733,#0a1119 82%)}
+canvas:active{cursor:grabbing}
+.stage-foot{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:11.5px;color:var(--label3)}
+.stage-foot strong{color:var(--accent);font-weight:600}
+#sel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;align-items:center}
+#sel>label{min-width:0;font-size:14px}
+#sel>input[type=range]{width:100%}
+#sel>span{grid-column:1/-1;color:var(--label3);font-size:12.5px}
+#sel select{width:100%}
+#furniture{display:flex;flex-direction:column;gap:10px}
+#furniture>.ctl{padding:12px;border-radius:16px;background:var(--fill2);box-shadow:0 0 0 .5px var(--sep);flex-wrap:wrap}
+#furniture strong{flex-basis:100%;font:600 15px var(--font)}
+#furniture input{width:88px}
+#demoSolo{gap:8px}
+#demoSolo>span{font-size:13px;color:var(--label2)}
+#demoSolo button[aria-pressed=true]{background:rgba(48,209,88,.22);box-shadow:0 0 0 .5px rgba(48,209,88,.5)}
+#hudGlass{display:flex;flex-direction:column;gap:6px}
+#hudGlass .ends{display:flex;justify-content:space-between;font-size:11.5px;color:var(--label3)}
+
+/* ---- iOS 27 tab bar (mobile): 4 tabs + Prominent Tab capsule ---- */
+.tabbar{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:40;
+ display:none;gap:4px;align-items:center;padding:6px;border-radius:28px;
+ background:rgba(var(--glass-rgb),calc((var(--glass-a)+.14)*var(--glass-opacity-scale)));
+ -webkit-backdrop-filter:blur(calc(28px*var(--glass-blur-scale))) saturate(190%);backdrop-filter:blur(calc(28px*var(--glass-blur-scale))) saturate(190%);
+ box-shadow:0 0 0 .5px var(--ring),inset 0 0 0 .5px rgba(255,255,255,.08),inset 0 30px 30px -30px var(--spec),inset 0 -30px 30px -30px var(--spec),0 14px 40px rgba(0,0,0,.42)}
+.tab{flex:1 1 0;min-height:48px;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+ padding:5px 2px;border-radius:22px;background:transparent;box-shadow:none;font:590 10.5px/1.15 var(--font);color:var(--label2);letter-spacing:.1px}
+.tab svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tab[aria-selected=true]{color:var(--label);background:var(--tab-sel);box-shadow:none}
+.tab.prominent{flex:0 0 auto;flex-direction:row;gap:7px;padding:0 18px;min-height:48px;border-radius:22px;
+ color:var(--blue);font-size:15px;background:rgba(10,132,255,.16);box-shadow:0 0 0 .5px rgba(10,132,255,.32)}
+.tab.prominent[aria-selected=true]{background:rgba(10,132,255,.26);color:var(--label)}
+.tab:active{transform:scale(.95);opacity:.9}
+
+/* ---- panels: all visible on desktop, one per tab on mobile ---- */
+@media(max-width:899px){
+ .layout{grid-template-columns:1fr}
+ .col-ctl{display:none}
+ .col-ctl .sec{display:none}
+ body[data-tab=source] .col-ctl,body[data-tab=room] .col-ctl,body[data-tab=rig] .col-ctl,body[data-tab=sound] .col-ctl{display:flex}
+ body[data-tab=source] [data-panel=source],body[data-tab=room] [data-panel=room],body[data-tab=rig] [data-panel=rig],body[data-tab=sound] [data-panel=sound]{display:flex}
+ body:not([data-tab=stage]) .col-stage{display:none}
+ .tabbar{display:flex}
+}
+footer{max-width:none;text-align:center;padding:10px 4px 0;font-size:12px;color:var(--label3)}
+footer a{color:var(--blue)}
+
+/* ---- accessibility ---- */
+@media(prefers-reduced-transparency:reduce){:root{--glass-a:.96;--glass-blur-scale:.15}
+ .glass,.sec,.tabbar{backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 0 0 .5px var(--ring),var(--shadow)}}
+@media(prefers-contrast:more){:root{--label2:var(--label);--sep:var(--label3);--glass-a:.9;--card-a:.92}
+ .glass,.sec{border:.5px solid var(--label2)}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media(hover:none){button:hover{background:var(--fill)}}
+@media(max-width:600px){
+ body{padding-left:10px;padding-right:10px}
+ .topbar{padding:14px 16px;top:6px}
+ .topbar h1{font-size:27px}
+ .badge{display:none}
+ .sec{padding:16px;border-radius:var(--r-md)}
+ .stagebar .hint{display:none}
+ .stage-foot{display:none}
+ #sel{grid-template-columns:1fr}
+ #sel>span{grid-column:auto}
+ #furniture>.ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ #furniture strong,#furniture button{grid-column:1/-1}
+ #furniture input{width:100%}
+ .ctl{gap:10px}
+ input:not([type]),input[type=text],input[type=number],select{font-size:17px}
+ /* phones: one control per row for selects and sliders so nothing is cramped */
+ .ctl label:has(select),.ctl label:has(>input[type=range]){width:100%}
+ .ctl label:has(select) select{flex:1 1 auto}
+ .ctl input[type=range]{flex:1 1 100%;width:100%!important}
+}
+@media(max-width:380px){
+ .tab{font-size:9.5px}
+ .tab svg{width:21px;height:21px}
+ .topbar h1{font-size:24px}
+}
 </style>
-<header class="top"><div><div class="eyebrow">Your personal listening room</div><h3>Music Stage</h3><p class="sub">Place your sound. Find your sweet spot.</p></div><span class="badge">LOCAL AUDIO STUDIO</span></header>
+<header class="topbar glass"><div><div class="eyebrow">Your personal listening room</div><h1>Music Stage</h1><p class="sub">Place your sound. Find your sweet spot.</p></div><span class="badge">Local audio studio</span></header>
 <div class="layout">
-<div class="col-stage">
-<section class="stage" aria-labelledby="h-stage">
+<div class="col-stage" data-panel="stage">
+<section class="stage sec" aria-labelledby="h-stage">
 <div class="stagebar"><h4 id="h-stage">Stage</h4><span class="hint">drag speakers, furniture &amp; listener · click floor to move · Delete removes speaker</span></div>
 <canvas id=c width=900 height=600 role="img" aria-label="3D room view. Speakers are numbered cabinets, listener is the green head with heading."></canvas>
 <div class="stage-foot"><span><strong>●</strong> colored ring = speaker type</span><span><strong>○</strong> white ring = selected</span><span><strong>▲</strong> green = you, facing the arrow</span><span>drag = live move</span></div>
 </section>
 <div class="row sec" id=sel role="group" aria-label="Selected speaker">Tap a speaker cabinet to select it.</div>
+<section class="sec" aria-labelledby="h-tr"><h4 id="h-tr">Transport</h4>
+<div class="ctl"><button id=play class=tint>Play</button>
+<input type=range id=seek min=0 max=1000 value=0 style="width:180px" aria-label="Seek position">
+<span id=time>0:00/0:00</span>
+<span class="meters" title="Live output fed to left/right ear"><i id=mL></i><i id=mR></i></span>
+<button id=back aria-label="Back 10 seconds">−10s</button><button id=fwd aria-label="Forward 10 seconds">+10s</button>
+<label>Master <input type=range id=mvol min=0 max=2.5 step=0.05 value=0.9 style="width:100px" aria-label="Master volume"></label></div>
+</section>
+<section class="sec" aria-labelledby="h-head"><h4 id="h-head">Head tracking</h4>
+<div class="ctl"><button id=motion class=tint>Head track</button>
+<button id=center>Center</button>
+<label><input type=checkbox id=uni checked> Manual (no sensor)</label>
+<label>Turn <input type=range id=yaw min=0 max=360 value=0 style="width:90px" aria-label="Manual turn"></label>
+<label>Look <input type=range id=look min=-60 max=60 value=0 style="width:80px" aria-label="Manual look up down"></label>
+<label>Response <input type=range id=sens min=0.5 max=2 step=0.1 value=1 style="width:70px" aria-label="Tracking sensitivity"></label></div>
+</section>
+<section class="sec" aria-labelledby="h-look"><h4 id="h-look">Liquid Glass</h4>
+<div class="ctl" id=hudGlass><label style="width:100%">Transparency <input type=range id=glassAmt min=0 max=100 step=1 value=65 aria-label="Liquid Glass transparency, ultra clear to fully tinted"></label>
+<div class="ends" style="width:100%"><span>ultra clear</span><span>fully tinted</span></div></div>
+<p class=hint>iOS&nbsp;27 lets you dial the glass from ultra clear to fully tinted. Follows your system Light/Dark appearance; Reduce Transparency and Increase Contrast are honored.</p>
+</section>
 </div>
 <div class="col-ctl">
-<section class="row sec" aria-labelledby="h-src"><h4 id="h-src"><span>01</span>Source</h4>
+<section class="row sec" data-panel="source" aria-labelledby="h-src"><h4 id="h-src">Source</h4>
 <div class="ctl"><input type=file id=f accept="audio/*" aria-label="Upload an audio file"></div>
 <div class="ctl"><label>Demo <select id=demo><option value="">choose a demo track…</option></select></label><button id=loadDemo>Load demo</button></div>
 <p class=hint>Seven 24-second CC-BY excerpts, including two Indian-fusion selections (not Bollywood film songs). Loading plays the original mix on a stereo pair — press Play. Map stems splits prepared vocals, drums, bass and other instruments onto four boxes (experimental separation is lossy). All parts / Vocals only buttons audition each part. Demos require HTTP(S); press Play to hear. Height/front-back perception varies.</p>
@@ -96,7 +248,7 @@ details.hint summary{padding:6px 0;cursor:pointer}
 <div class="ctl"><input id=url placeholder="…or paste a direct mp3/ogg link" aria-label="Paste a direct audio link"><button id=loadUrl>Load link</button></div>
 <p id=stat role="status" aria-live="polite"></p>
 </section>
-<section class="row sec" aria-labelledby="h-room"><h4 id="h-room"><span>02</span>Room</h4>
+<section class="row sec" data-panel="room" aria-labelledby="h-room"><h4 id="h-room">Room</h4>
 <div class="ctl"><label>W <input type=number id=rw value=6 min=2 max=30 step=0.5 aria-label="Room width meters"></label>
 <label>L <input type=number id=rl value=8 min=2 max=30 step=0.5 aria-label="Room length meters"></label>
 <label>H <input type=number id=rh value=3 min=2 max=10 step=0.5 aria-label="Room height meters"></label></div>
@@ -109,7 +261,7 @@ details.hint summary{padding:6px 0;cursor:pointer}
 <div class="ctl"><button id=addBed>Add bed</button><button id=addSofa>Add sofa</button><button id=addWardrobe>Add wardrobe / almirah</button></div>
 <div id=furniture></div><p class=hint>Furniture coordinates and dimensions are meters. Softness/absorption and blocked-path filtering are adjustable approximations, not a measured room replica. Hard cupboards do not absorb like upholstery.</p>
 </section>
-<section class="row sec" aria-labelledby="h-rig"><h4 id="h-rig"><span>03</span>Rig</h4>
+<section class="row sec" data-panel="rig" aria-labelledby="h-rig"><h4 id="h-rig">Rig</h4>
 <div class="ctl"><button id=addSp>Add full</button>
 <button id=addTw>Add tweeter</button>
 <button id=addSub>Add sub</button>
@@ -117,23 +269,7 @@ details.hint summary{padding:6px 0;cursor:pointer}
 <button id=mapStems style="display:none">Map stems</button>
 <button id=openStems>Stems…</button></div>
 </section>
-<section class="row sec" aria-labelledby="h-tr"><h4 id="h-tr"><span>04</span>Transport</h4>
-<div class="ctl"><button id=play>Play</button>
-<input type=range id=seek min=0 max=1000 value=0 style="width:180px" aria-label="Seek position">
-<span id=time>0:00/0:00</span>
-<span class="meters" title="Live output fed to left/right ear"><i id=mL></i><i id=mR></i></span>
-<button id=back aria-label="Back 10 seconds">−10s</button><button id=fwd aria-label="Forward 10 seconds">+10s</button>
-<label>Master <input type=range id=mvol min=0 max=2.5 step=0.05 value=0.9 style="width:100px" aria-label="Master volume"></label></div>
-</section>
-<section class="row sec" aria-labelledby="h-head"><h4 id="h-head"><span>05</span>Head tracking</h4>
-<div class="ctl"><button id=motion>Head track</button>
-<button id=center>Center</button>
-<label><input type=checkbox id=uni checked> Manual (no sensor)</label>
-<label>Turn <input type=range id=yaw min=0 max=360 value=0 style="width:90px" aria-label="Manual turn"></label>
-<label>Look <input type=range id=look min=-60 max=60 value=0 style="width:80px" aria-label="Manual look up down"></label>
-<label>Response <input type=range id=sens min=0.5 max=2 step=0.1 value=1 style="width:70px" aria-label="Tracking sensitivity"></label></div>
-</section>
-<section class="row sec" aria-labelledby="h-snd"><h4 id="h-snd"><span>06</span>Sound</h4>
+<section class="row sec" data-panel="sound" aria-labelledby="h-snd"><h4 id="h-snd">Sound</h4>
 <div class="ctl"><label>Test tone <select id=testFreq><option value=80>Bass · 80 Hz</option><option value=1000 selected>Mid · 1 kHz</option><option value=6000>Treble · 6 kHz</option></select></label><button id=tL>Test L</button><button id=tR>Test R</button>
 <label>Balance <input type=range id=bal min=-1 max=1 step=0.1 value=0 style="width:100px" aria-label="Left right balance"></label>
 <label><input type=checkbox id=hq> Precise imaging <span class="hint">(experimental — off = classic engine)</span></label>
@@ -149,7 +285,14 @@ details.hint summary{padding:6px 0;cursor:pointer}
 </section>
 </div>
 </div>
-<footer class="row hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · speaker height in its panel · ears at 1.6m · build fidelity-1</footer>
+<nav class="tabbar glass" role="tablist" aria-label="Sections">
+<button class="tab" role="tab" data-tab=source aria-selected=false aria-controls="h-src"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.6"/><circle cx="16.5" cy="16" r="2.6"/></svg>Source</button>
+<button class="tab" role="tab" data-tab=room aria-selected=false aria-controls="h-room"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V7l8-4 8 4v13"/><path d="M9 20v-6h6v6"/></svg>Room</button>
+<button class="tab" role="tab" data-tab=rig aria-selected=false aria-controls="h-rig"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="3"/><circle cx="12" cy="14.5" r="3.4"/><circle cx="12" cy="7" r="1.1"/></svg>Rig</button>
+<button class="tab" role="tab" data-tab=sound aria-selected=false aria-controls="h-snd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-4M8 17V7M12 20V4M16 17V7M20 14v-4"/></svg>Sound</button>
+<button class="tab prominent" role="tab" data-tab=stage aria-selected=true aria-controls="h-stage"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="2.5"/><path d="M7 17v3M17 17v3M6 7V5h12v2"/></svg>Stage</button>
+</nav>
+<footer class="hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · ears at 1.6m · build ios27-1</footer>
 <script>
 // ponytail: mono-feed per speaker (stereo->HRTF sounds phasey/left-biased). L/R split restores separation.
 let AC, buf, playing=[], live=[], master, verb, wet, comp, balN, trimL=null, trimR=null, anL=null, anR=null;
@@ -844,4 +987,20 @@ function showSel(){
 }
 listener.x=room.w/2;listener.y=room.l/2;
 showSel();draw();loadStemsFromCache();
+// iOS 27 shell: one panel per tab on phones (all panels on wide screens), Liquid Glass transparency
+// slider (ultra clear -> fully tinted), uniform toolbar once content scrolls beneath it.
+const TABS=['stage','source','room','rig','sound'];
+function goTab(t){document.body.dataset.tab=t;
+  document.querySelectorAll('.tabbar .tab').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  if(innerWidth<900)scrollTo(0,0);}
+document.querySelector('.tabbar').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)goTab(b.dataset.tab);});
+goTab('stage');
+const glassAmt=$('glassAmt'),rootStyle=document.documentElement.style;
+function applyGlass(){const v=+glassAmt.value/100;
+  rootStyle.setProperty('--glass-opacity-scale',(.55+.45*v).toFixed(3));
+  rootStyle.setProperty('--glass-blur-scale',(.45+1.1*v).toFixed(3));}
+try{glassAmt.value=localStorage.getItem('glass')||65;}catch(e){}
+glassAmt.oninput=()=>{applyGlass();try{localStorage.setItem('glass',glassAmt.value);}catch(e){}};
+applyGlass();
+addEventListener('scroll',()=>document.body.classList.toggle('scrolled',scrollY>6),{passive:true});
 </script>
