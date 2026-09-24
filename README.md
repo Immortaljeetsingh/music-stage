@@ -60,7 +60,7 @@ AudioBuffer source -> band filter -> channel split / width
 
 Six mirrored image sources approximate first-order wall reflections. The late reverb uses a synthetic decaying-noise impulse. Softness and estimated furnishing area shorten/darken the tail. A segment/box intersection test detects blocked source-listener paths and applies a heuristic 1.8 kHz low-pass to direct sound, leaving the room send separate.
 
-The 3D-style view is an oblique projection drawn on a 2D canvas, not a scanned 3D room. Furniture picking follows the visible projected faces; dragging preserves the initial grab offset.
+The 3D-style view is an oblique projection drawn on a 2D canvas, not a scanned 3D room. It repaints in Light or Dark with the rest of the app. Speaker cabinets are drawn as their real driver layouts: two-way boxes (dome tweeter over a woofer, reflex port, badge), horn tweeters, and subwoofers (large driver, port slot, feet); the colored ring still identifies the type/band. The listener is drawn as a cartoon person whose green cone and nose point where they face. Cabinets are drawn about 1.3× true size so they stay legible in a 10 m room, and hit-testing shares those dimensions. Furniture picking follows the visible projected faces; dragging preserves the initial grab offset.
 
 ## Headphones and tracking
 

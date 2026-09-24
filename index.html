@@ -131,6 +131,7 @@ input[type=checkbox]:checked::after{transform:translateX(20px)}
 .stagebar h4{margin:0;font:600 13px/1 var(--font);letter-spacing:.6px;text-transform:uppercase;color:var(--label2)}
 canvas{width:100%;height:auto;aspect-ratio:3/2;display:block;touch-action:none;cursor:grab;border-radius:20px;
  border:.5px solid var(--sep);background:radial-gradient(ellipse at 50% 28%,#1b2733,#0a1119 82%)}
+:root[data-appearance=light] canvas{background:radial-gradient(ellipse at 50% 28%,#f4f6fa,#e2e6ee 82%)}
 canvas:active{cursor:grabbing}
 .stage-foot{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:11.5px;color:var(--label3)}
 .stage-foot strong{color:var(--accent);font-weight:600}
@@ -217,8 +218,8 @@ footer a{color:var(--blue)}
 <div class="col-stage" data-panel="stage">
 <section class="stage sec" aria-labelledby="h-stage">
 <div class="stagebar"><h4 id="h-stage">Stage</h4><span class="hint">drag speakers, furniture &amp; listener · click floor to move · Delete removes speaker</span></div>
-<canvas id=c width=900 height=600 role="img" aria-label="3D room view. Speakers are numbered cabinets, listener is the green head with heading."></canvas>
-<div class="stage-foot"><span><strong>●</strong> colored ring = speaker type</span><span><strong>○</strong> white ring = selected</span><span><strong>▲</strong> green = you, facing the arrow</span><span>drag = live move</span></div>
+<canvas id=c width=900 height=600 role="img" aria-label="3D room view. Speaker cabinets show real driver layouts: two-way full-range boxes, horn tweeters and subwoofers. The listener is a cartoon person; the green cone shows the direction they face."></canvas>
+<div class="stage-foot"><span><strong>●</strong> colored ring = speaker type</span><span><strong>○</strong> blue ring = selected</span><span><strong>▲</strong> person = you, green cone = facing</span><span>drag = live move</span></div>
 </section>
 <div class="row sec" id=sel role="group" aria-label="Selected speaker">Tap a speaker cabinet to select it.</div>
 <section class="sec" aria-labelledby="h-tr"><h4 id="h-tr">Transport</h4>
@@ -307,7 +308,7 @@ footer a{color:var(--blue)}
 <button class="tab" role="tab" data-tab=sound aria-selected=false aria-controls="h-snd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-4M8 17V7M12 20V4M16 17V7M20 14v-4"/></svg>Sound</button>
 <button class="tab prominent" role="tab" data-tab=stage aria-selected=true aria-controls="h-stage"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="2.5"/><path d="M7 17v3M17 17v3M6 7V5h12v2"/></svg>Stage</button>
 </nav>
-<footer class="hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · ears at 1.6m · build ios27-3</footer>
+<footer class="hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · ears at 1.6m · build stage-art-1</footer>
 <script>
 // ponytail: mono-feed per speaker (stereo->HRTF sounds phasey/left-biased). L/R split restores separation.
 let AC, buf, playing=[], live=[], master, verb, wet, comp, balN, trimL=null, trimR=null, anL=null, anR=null;
@@ -391,10 +392,10 @@ $('stage8').onclick=()=>{ // 4 ear-level fulls + 4 ceiling tweeters + 1 floor su
     {x:w-0.5,y:0.5,h:EAR,v:1,sub:false,ch:'R',band:'Full'},
     {x:0.5,y:l-0.5,h:EAR,v:0.7,sub:false,ch:'L',band:'Vocal'},
     {x:w-0.5,y:l-0.5,h:EAR,v:0.7,sub:false,ch:'R',band:'Vocal'},
-    {x:0.5,y:0.5,h:h-0.3,v:0.6,sub:false,ch:'L',band:'Tweeter'},
-    {x:w-0.5,y:0.5,h:h-0.3,v:0.6,sub:false,ch:'R',band:'Tweeter'},
-    {x:0.5,y:l-0.5,h:h-0.3,v:0.6,sub:false,ch:'L',band:'Tweeter'},
-    {x:w-0.5,y:l-0.5,h:h-0.3,v:0.6,sub:false,ch:'R',band:'Tweeter'},
+    {x:0.5,y:0.5,h:Math.min(2.6,room.h-0.3),v:0.6,sub:false,ch:'L',band:'Tweeter'},
+    {x:w-0.5,y:0.5,h:Math.min(2.6,room.h-0.3),v:0.6,sub:false,ch:'R',band:'Tweeter'},
+    {x:0.5,y:l-0.5,h:Math.min(2.6,room.h-0.3),v:0.6,sub:false,ch:'L',band:'Tweeter'},
+    {x:w-0.5,y:l-0.5,h:Math.min(2.6,room.h-0.3),v:0.6,sub:false,ch:'R',band:'Tweeter'},
     {x:w/2,y:0.5,h:0.3,v:1.5,sub:true,ch:'M',band:'Full'},
   ];selIdx=0;if(playing.length)seekTo(curPos());showSel();draw();say('9-box rig placed');};
 $('roomAmt').oninput=e=>{if(wet)wet.gain.value=+e.target.value;$('preset').value='';};
@@ -865,66 +866,134 @@ function toPx(p){return P3(p.x,p.y,p.h??0);}
 function toM(px,py){const S=S3();const v=(py-CY3())/(0.5*S);
   return {x:room.w/2+(px-CX3())/S-0.5*v, y:room.l/2+v};}
 const col=s=>s.sub?'#f59e0b':(s.band==='Tweeter'?'#22d3ee':(s.band==='Vocal'?'#c084fc':(s.band==='Bass'?'#2dd4bf':(s.band==='Bright'?'#facc15':'#3b82f6'))));
+const isLight=()=>document.documentElement.getAttribute('data-appearance')==='light';
+function pal(){return isLight()?{ // stage follows Light/Dark with the rest of the app
+  floor0:'#e6e9f1',floor1:'#cfd5e2',grid:'rgba(60,60,67,.26)',edge:'#7e879b',wall0:'rgba(250,251,253,.98)',wall1:'rgba(190,198,215,.98)',
+  text:'#3c4254',text2:'#6b7288',cab:'#d2d7e2',cabTop:'#e9ecf3',cabSide:'#b7bdcb',basket:'#3a4050',cone:'#5b6377',metal:'#8d95a8',
+  hole:'#2a2f3c',shade:'rgba(30,35,50,.16)',hair:'#2f2a26',skin:'#f0c9a4',shirt:'#34d399',pants:'#3b4a6b',sel:'#0a84ff',lbl:'#1c1c1e',
+  fWood:'#d9b58c',fWood2:'#bd9266',fHard:'#c3c8d4'}:{
+  floor0:'#141c29',floor1:'#1c2635',grid:'rgba(70,90,120,.28)',edge:'#33445a',wall0:'rgba(20,28,40,.55)',wall1:'rgba(10,14,22,.75)',
+  text:'#8fa3bd',text2:'#7d8ea6',cab:'#2f3a4d',cabTop:'#3a475d',cabSide:'#232d3d',basket:'#141a24',cone:'#232b39',metal:'#8d97a8',
+  hole:'#0b0f14',shade:'rgba(0,0,0,.4)',hair:'#1d1a17',skin:'#e8bd93',shirt:'#22c55e',pants:'#33415e',sel:'#ffffff',lbl:'#c9d6e8',
+  fWood:'#496b72',fWood2:'#293642',fHard:'#384653'};}
+const cabR=s=>s.sub?0.5:(s.band==='Tweeter'?0.24:0.3); // cabinet half-width in meters: pick() uses the same numbers
+// one loudspeaker driver: basket, surround, cone, phase plug
+function driver(px,py,R,p,accent,lit){
+  x2.beginPath();x2.arc(px,py,R,0,7);x2.fillStyle=p.basket;x2.fill();
+  if(lit){x2.globalAlpha*=.5;x2.beginPath();x2.arc(px,py,R*1.18,0,7);x2.fillStyle=accent;x2.fill();x2.globalAlpha/=.5;}
+  x2.lineWidth=Math.max(1,R*0.14);x2.strokeStyle=p.metal;x2.beginPath();x2.arc(px,py,R*0.92,0,7);x2.stroke();
+  const g=x2.createRadialGradient(px-R*0.25,py-R*0.3,R*0.12,px,py,R*0.88);
+  g.addColorStop(0,p.cone);g.addColorStop(1,p.hole);x2.fillStyle=g;
+  x2.beginPath();x2.arc(px,py,R*0.86,0,7);x2.fill();
+  x2.beginPath();x2.arc(px,py,R*0.3,0,7);x2.fillStyle=p.metal;x2.fill();
+  x2.beginPath();x2.arc(px-R*0.1,py-R*0.12,R*0.12,0,7);x2.fillStyle='rgba(255,255,255,.25)';x2.fill();}
+function drawCabinet(i,s,p){
+  const S=S3(),r=cabR(s),cc=col(s),lit=!s.mute;
+  const [bx,by]=P3(s.x,s.y,0),[tx,ty]=P3(s.x,s.y,s.h??EAR);
+  x2.globalAlpha=s.mute?0.34:1;
+  x2.beginPath();x2.ellipse(bx,by,r*S*1.05,r*S*0.5,0,0,7);x2.fillStyle=p.shade;x2.fill();
+  if(Math.abs((s.h??EAR))>0.05){x2.strokeStyle=p.text2;x2.lineWidth=2;x2.globalAlpha=(s.mute?0.2:0.5);
+    x2.beginPath();x2.moveTo(bx,by);x2.lineTo(tx,ty);x2.stroke();x2.globalAlpha=s.mute?0.34:1;}
+  const w2=r*S,h2=(s.sub?0.78:s.band==='Tweeter'?0.62:0.92)*S,d2=r*S*0.7;
+  x2.beginPath();x2.moveTo(tx-w2,ty-h2);x2.lineTo(tx+w2,ty-h2);x2.lineTo(tx+w2+d2*0.5,ty-h2+d2*0.5);x2.lineTo(tx-w2+d2*0.5,ty-h2+d2*0.5);x2.closePath();
+  x2.fillStyle=p.cabTop;x2.fill(); // top
+  x2.beginPath();x2.moveTo(tx-w2,ty-h2);x2.lineTo(tx-w2+d2*0.5,ty-h2+d2*0.5);x2.lineTo(tx-w2+d2*0.5,ty+d2*0.5);x2.lineTo(tx-w2,ty);x2.closePath();
+  x2.fillStyle=p.cabSide;x2.fill(); // side
+  x2.beginPath();x2.rect(tx-w2,ty-h2,w2*2,h2); // baffle
+  const gg=x2.createLinearGradient(tx-w2,ty-h2,tx+w2,ty);
+  gg.addColorStop(0,p.cab);gg.addColorStop(1,isLight()?'#b6bdcb':'#242e3f');
+  x2.fillStyle=gg;x2.fill();
+  x2.lineWidth=2;x2.strokeStyle=lit?cc:p.metal;x2.stroke(); // colored ring = speaker type
+  if(s.sub){ // subwoofer: big driver, port slot, four feet
+    driver(tx,ty-h2*0.46,w2*0.72,p,cc,lit);
+    x2.fillStyle=p.hole;x2.fillRect(tx-w2*0.62,ty-h2*0.06,w2*1.24,Math.max(2,h2*0.09));
+    x2.fillStyle=p.cabSide;
+    for(const sx2 of[-1,1])for(const sy2 of[0,1])x2.fillRect(tx+sx2*w2*0.8-2,ty-h2*0.02+sy2*h2*0.1,4,4);
+  }else if(s.band==='Tweeter'){ // tweeter: shallow waveguide with a dome
+    x2.beginPath();x2.moveTo(tx-w2*0.62,ty-h2*0.62);x2.lineTo(tx+w2*0.62,ty-h2*0.62);
+    x2.lineTo(tx+w2*0.4,ty-h2*0.16);x2.lineTo(tx-w2*0.4,ty-h2*0.16);x2.closePath();
+    x2.fillStyle=p.cabSide;x2.fill();x2.strokeStyle=p.metal;x2.lineWidth=1.5;x2.stroke();
+    driver(tx,ty-h2*0.4,w2*0.32,p,cc,lit);
+    x2.beginPath();x2.ellipse(tx,ty-h2*0.4,w2*0.16,w2*0.13,0,0,7);x2.fillStyle=p.metal;x2.fill();
+  }else{ // 2-way: tweeter over mid/bass woofer, reflex port, badge
+    x2.beginPath();x2.moveTo(tx-w2*0.55,ty-h2*0.82);x2.lineTo(tx+w2*0.55,ty-h2*0.82);
+    x2.lineTo(tx+w2*0.34,ty-h2*0.56);x2.lineTo(tx-w2*0.34,ty-h2*0.56);x2.closePath();
+    x2.fillStyle=p.cabSide;x2.fill(); // waveguide
+    x2.beginPath();x2.ellipse(tx,ty-h2*0.7,w2*0.17,w2*0.14,0,0,7);x2.fillStyle=p.metal;x2.fill(); // dome tweeter
+    driver(tx,ty-h2*0.34,w2*0.6,p,cc,lit);
+    x2.fillStyle=p.hole;x2.beginPath();x2.arc(tx,ty-h2*0.08,w2*0.13,0,7);x2.fill(); // bass port
+    x2.fillStyle=cc;x2.fillRect(tx-w2*0.5,ty-h2*0.005,w2,Math.max(1.5,h2*0.03)); // badge
+  }
+  if(i===selIdx){x2.lineWidth=2.5;x2.strokeStyle=p.sel;x2.strokeRect(tx-w2-3,ty-h2-3,w2*2+6,h2+3);}
+  x2.fillStyle=p.lbl;x2.font='bold 11px system-ui';
+  x2.fillText(s.sub?'SUB':(i+1)+(s.ch||''),tx-8,ty+h2*0.35);
+  x2.fillStyle=p.text2;x2.font='10px system-ui';x2.fillText((s.h??EAR).toFixed(1)+'m',tx+w2+4,ty-h2/2+3);
+  x2.globalAlpha=1;}
+function drawPerson(p){ // a cartoon listener, not a dot: legs, torso, arms, head, facing
+  const S=S3(),a=listener.yaw;
+  const base=P3(listener.x,listener.y,0),head=P3(listener.x,listener.y,1.62);
+  const fwd=P3(listener.x-Math.sin(a)*0.6,listener.y-Math.cos(a)*0.6,1.62);
+  let fx=fwd[0]-head[0],fy=fwd[1]-head[1];const fl=Math.hypot(fx,fy)||1;fx/=fl;fy/=fl;
+  const sx=-fy,sy=fx,u=S*0.36,hipY=base[1]+(head[1]-base[1])*0.42;
+  const pA=P3(listener.x-Math.sin(a)*1.2-Math.cos(a)*0.7,listener.y-Math.cos(a)*1.2+Math.sin(a)*0.7,0.01);
+  const pB=P3(listener.x-Math.sin(a)*1.2+Math.cos(a)*0.7,listener.y-Math.cos(a)*1.2-Math.sin(a)*0.7,0.01);
+  x2.beginPath();x2.ellipse(base[0],base[1],0.45*S,0.22*S,0,0,7);x2.fillStyle=p.shade;x2.fill();
+  x2.beginPath();x2.moveTo(base[0],base[1]);x2.lineTo(...pA);x2.lineTo(...pB);x2.closePath();
+  x2.fillStyle='rgba(52,211,153,.22)';x2.fill(); // hearing cone
+  x2.lineCap='round';
+  for(const sgn of[-1,1]){ // legs
+    x2.strokeStyle=p.pants;x2.lineWidth=S*0.14;
+    x2.beginPath();x2.moveTo(head[0]+sx*u*0.4*sgn,hipY);x2.lineTo(base[0]+sx*u*0.55*sgn+fx*S*0.1,base[1]);x2.stroke();
+    x2.beginPath();x2.ellipse(base[0]+sx*u*0.55*sgn+fx*S*0.12,base[1],S*0.09,S*0.05,0,0,7);x2.fillStyle=p.hole;x2.fill();}
+  x2.beginPath(); // torso
+  x2.moveTo(head[0]+sx*u,head[1]+S*0.16);
+  x2.quadraticCurveTo(head[0]+sx*u*1.12,(head[1]+hipY)/2,base[0]+sx*u*0.72,hipY+S*0.1);
+  x2.lineTo(base[0]-sx*u*0.72,hipY+S*0.1);
+  x2.quadraticCurveTo(head[0]-sx*u*1.12,(head[1]+hipY)/2,head[0]-sx*u,head[1]+S*0.16);
+  x2.closePath();
+  const tg=x2.createLinearGradient(head[0]-u,head[1],head[0]+u,hipY);tg.addColorStop(0,p.shirt);tg.addColorStop(1,isLight()?'#10b981':'#15803d');
+  x2.fillStyle=tg;x2.fill();x2.strokeStyle='rgba(0,0,0,.25)';x2.lineWidth=1;x2.stroke();
+  x2.strokeStyle=p.shirt;x2.lineWidth=S*0.11; // arms
+  for(const sgn of[-1,1]){x2.beginPath();
+    x2.moveTo(head[0]+sx*u*0.95*sgn,head[1]+S*0.22);
+    x2.lineTo(head[0]+sx*u*1.5*sgn+fx*S*0.12,hipY-S*0.05);x2.stroke();
+    x2.beginPath();x2.arc(head[0]+sx*u*1.5*sgn+fx*S*0.12,hipY-S*0.05,S*0.06,0,7);x2.fillStyle=p.skin;x2.fill();}
+  const hr=S*0.3;
+  x2.beginPath();x2.arc(head[0],head[1],hr,0,7);x2.fillStyle=p.skin;x2.fill(); // head
+  x2.strokeStyle='rgba(0,0,0,.22)';x2.lineWidth=1.5;x2.stroke();
+  x2.beginPath();x2.arc(head[0],head[1],hr,Math.PI*0.85,Math.PI*2.15); // hair
+  x2.lineWidth=hr*0.42;x2.strokeStyle=p.hair;x2.stroke();
+  x2.beginPath();x2.arc(head[0]+fx*hr*0.5,head[1]+fy*hr*0.5-fy*hr*0.18,hr*0.13,0,7); // eyes, offset to face
+  x2.fillStyle='#222';x2.fill();
+  x2.beginPath();x2.arc(head[0]+fx*hr*0.95,head[1]+fy*hr*0.95,hr*0.16,0,7); // nose
+  x2.fillStyle=p.skin;x2.fill();x2.stroke();
+  x2.beginPath();x2.moveTo(head[0]+fx*S*0.34,head[1]+fy*S*0.34); // heading arrow
+  x2.lineTo(head[0]+fx*S*0.72,head[1]+fy*S*0.72);
+  x2.strokeStyle=p.shirt;x2.lineWidth=2.5;x2.stroke();
+  x2.beginPath();x2.arc(head[0]+fx*S*0.72,head[1]+fy*S*0.72,S*0.08,0,7);x2.fillStyle=p.shirt;x2.fill();}
 function draw(){
   x2.clearRect(0,0,c.width,c.height);
-  const S=S3(),v=0.5*S;
-  // back + side walls
+  const p=pal(),S=S3(),v=0.5*S;
   const wall=(a,b2,cc,d)=>{x2.beginPath();x2.moveTo(...a);x2.lineTo(...b2);x2.lineTo(cc[0],cc[1]-0.9*S*room.h);x2.lineTo(d[0],d[1]-0.9*S*room.h);x2.closePath();
-    const g=x2.createLinearGradient(a[0],a[1],cc[0],cc[1]);g.addColorStop(0,'rgba(20,28,40,.55)');g.addColorStop(1,'rgba(10,14,22,.75)');x2.fillStyle=g;x2.fill();};
+    const g=x2.createLinearGradient(a[0],a[1],cc[0],cc[1]);g.addColorStop(0,p.wall0);g.addColorStop(1,p.wall1);x2.fillStyle=g;x2.fill();};
   wall(P3(0,0,0),P3(room.w,0,0),P3(room.w,0,0),P3(0,0,0));
   wall(P3(0,0,0),P3(0,room.l,0),P3(0,room.l,0),P3(0,0,0));
-  // floor
   x2.beginPath();x2.moveTo(...P3(0,0,0));x2.lineTo(...P3(room.w,0,0));x2.lineTo(...P3(room.w,room.l,0));x2.lineTo(...P3(0,room.l,0));x2.closePath();
-  const fg=x2.createLinearGradient(0,CY3()-v*room.l/2,0,c.height);fg.addColorStop(0,'#141c29');fg.addColorStop(1,'#1c2635');x2.fillStyle=fg;x2.fill();
-  x2.strokeStyle='#33445a';x2.lineWidth=1.5;x2.stroke();
-  x2.strokeStyle='rgba(70,90,120,.28)';x2.lineWidth=1;
+  const fg=x2.createLinearGradient(0,CY3()-v*room.l/2,0,c.height);fg.addColorStop(0,p.floor0);fg.addColorStop(1,p.floor1);x2.fillStyle=fg;x2.fill();
+  x2.strokeStyle=p.edge;x2.lineWidth=1.5;x2.stroke();
+  x2.strokeStyle=p.grid;x2.lineWidth=1;
   for(let gx=1;gx<room.w;gx++){x2.beginPath();x2.moveTo(...P3(gx,0,0.005));x2.lineTo(...P3(gx,room.l,0.005));x2.stroke();}
   for(let gy=1;gy<room.l;gy++){x2.beginPath();x2.moveTo(...P3(0,gy,0.005));x2.lineTo(...P3(room.w,gy,0.005));x2.stroke();}
-  x2.fillStyle='#8fa3bd';x2.font='bold 11px system-ui';
+  x2.fillStyle=p.text2;x2.font='bold 11px system-ui';
   const st=P3(0,0,room.h);x2.fillText('FRONT WALL',st[0]+8,st[1]+18);
   furniture.slice().sort((a,b)=>a.y-b.y).forEach(o=>{
     const corners=[[o.x,o.y],[o.x+o.w,o.y],[o.x+o.w,o.y+o.d],[o.x,o.y+o.d]];
-    for(const [ids,zs,shade] of [[[0,1,1,0],[0,0,o.h,o.h],'#384653'],[[1,2,2,1],[0,0,o.h,o.h],'#293642'],[[0,1,2,3],[o.h,o.h,o.h,o.h],o.type==='Wardrobe'?'#80654b':'#496b72']]){
-      x2.beginPath();ids.forEach((id,i)=>{const p=P3(...corners[id],zs[i]);if(i)x2.lineTo(...p);else x2.moveTo(...p);});x2.closePath();x2.fillStyle=shade;x2.fill();x2.strokeStyle='#91a8b2';x2.stroke();
-    }
-    const p=P3(o.x+o.w/2,o.y+o.d/2,o.h);x2.fillStyle='#fff';x2.font='14px system-ui';x2.fillText(o.type,p[0]-25,p[1]);
+    for(const [ids,zs,shade] of [[[0,1,1,0],[0,0,o.h,o.h],p.fWood2],[[1,2,2,1],[0,0,o.h,o.h],p.fHard],[[0,1,2,3],[o.h,o.h,o.h,o.h],o.type==='Wardrobe'?p.fHard:p.fWood]]){
+      x2.beginPath();ids.forEach((id,i)=>{const q=P3(...corners[id],zs[i]);if(i)x2.lineTo(...q);else x2.moveTo(...q);});x2.closePath();x2.fillStyle=shade;x2.fill();x2.strokeStyle=p.edge;x2.stroke();}
+    const q=P3(o.x+o.w/2,o.y+o.d/2,o.h);x2.fillStyle=p.lbl;x2.font='14px system-ui';x2.fillText(o.type,q[0]-25,q[1]);
   });
-  // speakers painter-sorted back→front
-  [...sps.keys()].sort((a,b2)=>sps[a].y-sps[b2].y).forEach(i=>{
-    const s=sps[i],r=s.sub?0.42:0.28,[bx,by]=P3(s.x,s.y,0),[tx,ty]=P3(s.x,s.y,s.h??EAR),cc=col(s);
-    x2.globalAlpha=s.mute?0.3:1;
-    x2.beginPath();x2.ellipse(bx,by,r*S,r*S*0.5,0,0,7);x2.fillStyle='rgba(0,0,0,.4)';x2.fill(); // shadow
-    if(Math.abs((s.h??EAR))>0.05){x2.strokeStyle='rgba(140,160,190,.6)';x2.lineWidth=2;
-      x2.beginPath();x2.moveTo(bx,by);x2.lineTo(tx,ty);x2.stroke();} // stand
-    const w2=r*S,h2=0.9*S,d2=r*S*0.7; // cabinet box: front, top, side
-    x2.beginPath();x2.moveTo(tx-w2,ty-h2);x2.lineTo(tx+w2,ty-h2);x2.lineTo(tx+w2+d2*0.5,ty-h2+d2*0.5);x2.lineTo(tx-w2+d2*0.5,ty-h2+d2*0.5);x2.closePath();
-    x2.fillStyle='#2a3850';x2.fill(); // top
-    x2.beginPath();x2.moveTo(tx-w2,ty-h2);x2.lineTo(tx-w2+d2*0.5,ty-h2+d2*0.5);x2.lineTo(tx-w2+d2*0.5,ty+d2*0.5);x2.lineTo(tx-w2,ty);x2.closePath();
-    x2.fillStyle='#1c2739';x2.fill(); // side
-    x2.beginPath();x2.rect(tx-w2,ty-h2,w2*2,h2); // front
-    const gg=x2.createLinearGradient(tx,ty-h2,tx,ty);gg.addColorStop(0,'#3d4f6e');gg.addColorStop(1,'#232f45');x2.fillStyle=gg;x2.fill();
-    x2.strokeStyle=cc;x2.lineWidth=2;x2.stroke();
-    x2.beginPath();x2.arc(tx,ty-h2/2,w2*0.55,0,7);x2.fillStyle=cc;x2.globalAlpha=(s.mute?0.15:0.85);x2.fill(); // driver glow
-    x2.globalAlpha=s.mute?0.3:1;
-    x2.beginPath();x2.arc(tx,ty-h2/2,w2*0.22,0,7);x2.fillStyle='#0b0f14';x2.fill();
-    if(i===selIdx){x2.lineWidth=2.5;x2.strokeStyle='#fff';x2.beginPath();x2.arc(tx,ty-h2/2,w2*0.9,0,7);x2.stroke();}
-    x2.fillStyle='#c9d6e8';x2.font='bold 11px system-ui';
-    x2.fillText(s.sub?'SUB':(i+1)+(s.ch||''),tx-8,ty+h2*0.9);
-    x2.fillStyle='#7d8ea6';x2.font='10px system-ui';x2.fillText((s.h??EAR).toFixed(1)+'m',tx+w2+4,ty-h2/2+3);
-    x2.globalAlpha=1;});
-  // listener: shadow + cone + body + heading
-  const [lx2,ly2]=P3(listener.x,listener.y,0),a=listener.yaw;
-  const pA=P3(listener.x-Math.sin(a)*1.2-Math.cos(a)*0.7,listener.y-Math.cos(a)*1.2+Math.sin(a)*0.7,0.01);
-  const pB=P3(listener.x-Math.sin(a)*1.2+Math.cos(a)*0.7,listener.y-Math.cos(a)*1.2-Math.sin(a)*0.7,0.01);
-  x2.beginPath();x2.ellipse(lx2,ly2,0.45*S,0.22*S,0,0,7);x2.fillStyle='rgba(0,0,0,.45)';x2.fill();
-  x2.beginPath();x2.moveTo(lx2,ly2);x2.lineTo(...pA);x2.lineTo(...pB);x2.closePath();
-  x2.fillStyle='rgba(34,197,94,.18)';x2.fill();
-  const [hx,hy]=P3(listener.x,listener.y,1.1);
-  x2.beginPath();x2.moveTo(lx2,ly2);x2.lineTo(hx,hy);x2.strokeStyle='rgba(140,160,190,.5)';x2.lineWidth=2;x2.stroke();
-  x2.beginPath();x2.arc(hx,hy,0.24*S,0,7);x2.fillStyle='#22c55e';x2.fill();
-  x2.lineWidth=2;x2.strokeStyle='#fff';x2.stroke();
-  const hd=P3(listener.x-Math.sin(a)*0.9,listener.y-Math.cos(a)*0.9,1.35);
-  x2.beginPath();x2.moveTo(hx,hy);x2.lineTo(...hd);x2.strokeStyle='#fff';x2.lineWidth=2.5;x2.stroke();x2.lineWidth=1;
+  [...sps.keys()].sort((a,b2)=>sps[a].y-sps[b2].y).forEach(i=>drawCabinet(i,sps[i],p));
+  drawPerson(p);
 }
 let drag=null, moved=false;
 function evtPos(e){const r=c.getBoundingClientRect();
@@ -935,7 +1004,7 @@ function pick(e){
   let best=null,bd=Infinity;
   sps.forEach((s,i)=>{const [sx,sy]=P3(s.x,s.y,s.h??EAR);
     const d=Math.hypot(sx-px,sy-0.45*S3()-py);
-    if(Math.abs(sx-px)<Math.max(16,(s.sub?0.42:0.28)*S3()+6)&&Math.abs(sy-0.45*S3()-py)<Math.max(20,0.45*S3()+6)&&d<bd){bd=d;best={t:'s',i};}});
+    if(Math.abs(sx-px)<Math.max(16,cabR(s)*S3()+6)&&Math.abs(sy-0.45*S3()-py)<Math.max(20,0.45*S3()+6)&&d<bd){bd=d;best={t:'s',i};}});
   if(!best)[...furniture.keys()].sort((a,b)=>furniture[a].y-furniture[b].y).forEach(i=>{
     const o=furniture[i],corners=[[o.x,o.y],[o.x+o.w,o.y],[o.x+o.w,o.y+o.d],[o.x,o.y+o.d]];
     for(const [ids,zs] of [[[0,1,1,0],[0,0,o.h,o.h]],[[1,2,2,1],[0,0,o.h,o.h]],[[0,1,2,3],[o.h,o.h,o.h,o.h]]]){
@@ -943,8 +1012,8 @@ function pick(e){
       if(x2.isPointInPath(path,px,py))best={t:'f',i};
     }
   });
-  const [lx,ly]=P3(listener.x,listener.y,1.1);
-  if(Math.hypot(lx-px,ly-py)<Math.max(18,0.35*S3()))best={t:'l'};
+  const [lx,ly]=P3(listener.x,listener.y,1.62);
+  if(Math.hypot(lx-px,ly-py)<Math.max(18,0.45*S3()))best={t:'l'};
   return best;
 }
 let syncQueued=false;
@@ -1047,7 +1116,8 @@ function applyAppearance(){
   const v=appearance||(AP.matches?'light':'dark');
   rootStyle.setProperty('color-scheme',v);
   document.documentElement.setAttribute('data-appearance',v);
-  document.querySelectorAll('.seg [data-app]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.app||'')===appearance)));}
+  document.querySelectorAll('.seg [data-app]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.app||'')===appearance)));
+  try{draw();}catch(e){}}
 AP.addEventListener('change',()=>{if(!appearance)applyAppearance();});
 document.querySelector('.seg').addEventListener('click',e=>{const b=e.target.closest('[data-app]');if(!b)return;
   appearance=b.dataset.app;try{localStorage.setItem('appearance',appearance);}catch(_){}

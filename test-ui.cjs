@@ -35,12 +35,15 @@ const {chromium}=require('playwright');
       assert.equal(ap0[0],'light','System follows device appearance at '+width);
       await page.locator('.seg [data-app=dark]').click();
       const apDark=await page.evaluate(()=>[document.documentElement.getAttribute('data-appearance'),getComputedStyle(document.body).backgroundColor]);
+      const pxDark=await page.evaluate(()=>x2.getImageData(450,300,1,1).data.join());
       assert.equal(apDark[0],'dark','Dark override applies at '+width);
       assert.notEqual(apDark[1],ap0[1],'palette actually changes at '+width);
       await page.reload();
       assert.equal(await page.evaluate(()=>document.documentElement.getAttribute('data-appearance')),'dark','appearance persists across reload at '+width);
       await page.locator('.seg [data-app=""]').click();
       assert.deepEqual(await page.evaluate(()=>[document.documentElement.getAttribute('data-appearance'),getComputedStyle(document.body).backgroundColor]),ap0,'System restores device appearance at '+width);
+      const pxSys=await page.evaluate(()=>x2.getImageData(450,300,1,1).data.join());
+      assert.notEqual(pxSys,pxDark,'stage canvas repaints for the appearance at '+width);
       await page.evaluate(()=>localStorage.removeItem('appearance'));
       // furniture: add in Room, drag on the Stage canvas, read fields back in Room
       for(const [type,id] of [['Bed','addBed'],['Sofa','addSofa'],['Wardrobe','addWardrobe']]){
