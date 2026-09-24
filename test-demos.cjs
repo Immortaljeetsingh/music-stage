@@ -19,6 +19,8 @@ const {spawn}=require('node:child_process');
       await page.locator('#loadDemo').click();
       await page.waitForFunction(()=>!document.getElementById('loadDemo').disabled,null,{timeout:30000});
       assert(!(await page.locator('#stat').innerText()).includes('failed'),'demo load succeeded');
+      // mix plays immediately; stems arrive in the background
+      await page.waitForFunction(()=>stemNames.length===4,null,{timeout:30000});
       const info=await page.evaluate(()=>{
         const len=stemBufs.vocals.length;
         const bad=['vocals','drums','bass','other'].filter(k=>{const b=stemBufs[k];return b.length!==len||b.numberOfChannels!==2||b.sampleRate!==AC.sampleRate;});

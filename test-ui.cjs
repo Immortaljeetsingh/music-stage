@@ -65,7 +65,7 @@ const {chromium}=require('playwright');
           if(touch)await session.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});else await page.mouse.up();
           const after=await page.evaluate(t=>{const f=furniture[0];return {x:f.x,y:f.y,w:f.w,d:f.d,field:document.querySelector('input[aria-label="'+t+' X"]')?.value};},type);
           assert(after.x>0.1&&after.y>0.1,type+' moved at '+width);
-          assert(after.x+after.w<=6&&after.y+after.d<=8,type+' within bounds at '+width);
+          assert(after.x+after.w<=10&&after.y+after.d<=10,type+' within bounds at '+width);
           assert.equal(after.field,String(after.x),'coordinate control synced at '+width);
         }
         await go(page,'room');

@@ -254,6 +254,8 @@ footer a{color:var(--blue)}
 <p class=hint>Seven 24-second CC-BY excerpts, including two Indian-fusion selections (not Bollywood film songs). Loading plays the original mix on a stereo pair — press Play. Map stems splits prepared vocals, drums, bass and other instruments onto four boxes (experimental separation is lossy). All parts / Vocals only buttons audition each part. Demos require HTTP(S); press Play to hear. Height/front-back perception varies.</p>
 <div class="ctl" id=demoSolo hidden><span>Audition:</span><button data-solo="">All parts</button><button data-solo=vocals>Vocals only</button><button data-solo=drums>Drums only</button><button data-solo=bass>Bass only</button><button data-solo=other>Other only</button></div>
 <p id=demoCredit class=hint></p>
+<div class="ctl" id=quick><span class="hint" style="width:100%">Browse free music</span>
+<button data-q="Indian classical music">Indian classical</button><button data-q="Hindustani classical raga">Hindustani</button><button data-q="Carnatic music">Carnatic</button><button data-q="Bhangra">Bhangra</button><button data-q="Punjabi folk">Punjabi</button><button data-q="Ghazal">Ghazal</button><button data-q="Qawwali">Qawwali</button><button data-q="Bollywood songs">Bollywood</button><button data-q="sitar tabla">Sitar &amp; tabla</button><button data-q="Indian devotional bhajan">Devotional</button><button data-q="Indian film music">Indian film</button><button data-q="jazz">Jazz</button><button data-q="electronic music">Electronic</button><button data-q="world music">World</button></div>
 <div class="ctl"><select id=prov aria-label="Free music catalog"><option value=archive>Archive.org</option><option value=audius>Audius</option></select>
 <input id=q placeholder="search free music…" aria-label="Search free music">
 <button id=search>Search</button></div>
@@ -262,9 +264,9 @@ footer a{color:var(--blue)}
 <p id=stat role="status" aria-live="polite"></p>
 </section>
 <section class="row sec" data-panel="room" aria-labelledby="h-room"><h4 id="h-room">Room</h4>
-<div class="ctl"><label>W <input type=number id=rw value=6 min=2 max=30 step=0.5 aria-label="Room width meters"></label>
-<label>L <input type=number id=rl value=8 min=2 max=30 step=0.5 aria-label="Room length meters"></label>
-<label>H <input type=number id=rh value=3 min=2 max=10 step=0.5 aria-label="Room height meters"></label></div>
+<div class="ctl"><label>W <input type=number id=rw value=10 min=2 max=30 step=0.5 aria-label="Room width meters"></label>
+<label>L <input type=number id=rl value=10 min=2 max=30 step=0.5 aria-label="Room length meters"></label>
+<label>H <input type=number id=rh value=10 min=2 max=10 step=0.5 aria-label="Room height meters"></label></div>
 <div class="ctl"><label><input type=checkbox id=walls checked> Wall reflections</label>
 <label>Absorb <input type=range id=wallAbs min=0.1 max=0.9 step=0.05 value=0.5 aria-label="Wall absorption"></label>
 <label>Room verb <input type=range id=roomAmt min=0 max=0.4 step=0.01 value=0.05 style="width:80px" aria-label="Late reverb amount"></label>
@@ -305,7 +307,7 @@ footer a{color:var(--blue)}
 <button class="tab" role="tab" data-tab=sound aria-selected=false aria-controls="h-snd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-4M8 17V7M12 20V4M16 17V7M20 14v-4"/></svg>Sound</button>
 <button class="tab prominent" role="tab" data-tab=stage aria-selected=true aria-controls="h-stage"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="2.5"/><path d="M7 17v3M17 17v3M6 7V5h12v2"/></svg>Stage</button>
 </nav>
-<footer class="hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · ears at 1.6m · build ios27-2</footer>
+<footer class="hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · ears at 1.6m · build ios27-3</footer>
 <script>
 // ponytail: mono-feed per speaker (stereo->HRTF sounds phasey/left-biased). L/R split restores separation.
 let AC, buf, playing=[], live=[], master, verb, wet, comp, balN, trimL=null, trimR=null, anL=null, anR=null;
@@ -350,9 +352,9 @@ function addFurniture(type){const dims={Bed:[1.6,2,0.6,0.6],Sofa:[2,0.9,1,0.6],W
   furniture.push({type,x:0,y:0,w:Math.min(room.w,dims[0]),d:Math.min(room.l,dims[1]),h:Math.min(room.h,dims[2]),abs:dims[3]});showFurniture();furnitureChanged();}
 let playOffset=0, playStart=0, seekTimer=null;
 const EAR=1.6; // listener ear height, meters
-let room={w:6,l:8,h:3};
+let room={w:10,l:10,h:10}; // generous default stage: big rooms are the point of the app
 let listener={x:3,y:4,yaw:0,pitch:0,off:0,poff:0,useSensor:false,sYaw:0,sPitch:0};
-let sps=[{x:1,y:1,h:1.6,v:1,sub:false,ch:'L',band:'Full'},{x:5,y:1,h:1.6,v:1,sub:false,ch:'R',band:'Full'}];
+let sps=[{x:2,y:2,h:1.6,v:1,sub:false,ch:'L',band:'Full'},{x:8,y:2,h:1.6,v:1,sub:false,ch:'R',band:'Full'}];
 let selIdx=0;
 const c=document.getElementById('c'),x2=c.getContext('2d');
 const $=id=>document.getElementById(id);
@@ -376,7 +378,7 @@ $('f').onchange=async e=>{
   const ab=await e.target.files[0].arrayBuffer();
   buf=await AC.decodeAudioData(ab);
   srcMono=buf.numberOfChannels<2;
-  clearStems();playOffset=0;updTime();
+  clearStems();dropPendingStems();playOffset=0;updTime();
   say('file: '+buf.numberOfChannels+'ch '+(srcMono?'(mono→dual-mono)':('('+audit(buf)+')'))+' — press Play');
 };
 $('addSp').onclick=()=>{sps.push({x:room.w/2,y:room.l/2,h:EAR,v:1,sub:false,ch:'M',band:'Full'});if(playing.length)seekTo(curPos());draw();};
@@ -397,7 +399,8 @@ $('stage8').onclick=()=>{ // 4 ear-level fulls + 4 ceiling tweeters + 1 floor su
   ];selIdx=0;if(playing.length)seekTo(curPos());showSel();draw();say('9-box rig placed');};
 $('roomAmt').oninput=e=>{if(wet)wet.gain.value=+e.target.value;$('preset').value='';};
 $('openStems').onclick=()=>location.href='stems.html';
-$('mapStems').onclick=()=>{ // separated rig is opt-in: Demucs output is lossy vs the original mix
+$('mapStems').onclick=async()=>{ // separated rig is opt-in: Demucs output is lossy vs the original mix
+  if(demoStemsBusy){say('fetching stems…');await demoStemsBusy;demoStemsBusy=null;}
   if(stemNames.length===4){
     sps=[{x:3,y:1,h:1.6,v:1.1,ch:'M',band:'Full',stem:'vocals'},
       {x:1,y:2,h:1.3,v:1.1,ch:'M',band:'Full',stem:'drums'},
@@ -508,12 +511,13 @@ async function loadRemote(url,title){
     say('decoding '+((ab.byteLength/1048576).toFixed(1))+'MB…');
     buf=await AC.decodeAudioData(ab);
     srcMono=buf.numberOfChannels<2;
-    clearStems();playOffset=0;updTime();say('loaded: '+title+' ('+buf.numberOfChannels+'ch'+(srcMono?', mono→dual-mono':' ('+audit(buf)+')')+') — press Play');
+    clearStems();dropPendingStems();playOffset=0;updTime();say('loaded: '+title+' ('+buf.numberOfChannels+'ch'+(srcMono?', mono→dual-mono':' ('+audit(buf)+')')+') — press Play');
   }catch(e){say('failed ('+((e&&e.message)||'CORS/network')+') — try another track, paste a link, or upload');}}
 function stopPbSafe(){try{if(playing.length)stopPb();}catch(e){}}
 function clearStems(){ // a new mix must not keep playing the previous stems
   stemBufs={};stemNames=[];sps.forEach(s=>delete s.stem);
   $('mapStems').style.display='none';$('demoSolo').hidden=true;showSel();}
+function dropPendingStems(){demoGen++;demoStemsBusy=null;} // stale background fetch must not land
 $('loadUrl').onclick=()=>{const u=$('url').value.trim();if(u)loadRemote(u,u.split('/').pop());};
 (function probe(){try{
   const C=window.AudioContext||window.webkitAudioContext;if(!C){say('this browser has no Web Audio');return;}
@@ -529,28 +533,43 @@ $('demoSolo').onclick=e=>{const button=e.target.closest('button[data-solo]');if(
   $('demoSolo').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));};
 async function loadDemoList(){try{demos=await (await fetch('demos/manifest.json')).json();
   demos.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=(d.style?d.style+' · ':'')+d.title+' — '+d.artist;$('demo').append(o);});}catch(e){}}
+// Demo loading is mix-first: one file plays immediately, the four stems stream in the background
+// and only land when Map stems asks for them. Five sequential FLAC fetches was the slow path.
+let demoStemsBusy=null,demoGen=0;
 $('loadDemo').onclick=async()=>{const d=demos.find(d=>d.id===$('demo').value);if(!d)return;
-  try{$('loadDemo').disabled=true;stopPbSafe();say('loading demo stems…');
+  const gen=++demoGen;
+  try{$('loadDemo').disabled=true;stopPbSafe();say('downloading demo mix…');
     AC=AC||new (window.AudioContext||window.webkitAudioContext)();await AC.resume();
-    const base='demos/'+d.id+'/',loaded={};
-    for(const k of['vocals','drums','bass','other','mix']){const r=await fetch(base+k+'.flac');if(!r.ok)throw new Error(k+' http '+r.status);
-      loaded[k]=await AC.decodeAudioData(await r.arrayBuffer());}
-    const length=loaded.vocals.length;
-    if(Object.values(loaded).some(b=>b.length!==length||b.numberOfChannels!==2))throw new Error('stem alignment mismatch');
-    stopPbSafe();buf=loaded.mix;delete loaded.mix;stemBufs=loaded;srcMono=false;stemNames=Object.keys(stemBufs);playOffset=0;
-    room={w:6,l:8,h:3};listener.x=3;listener.y=4;listener.yaw=0;listener.pitch=0;furniture.length=0;showFurniture();
-    sps=[{x:1,y:1.5,h:1.6,v:1.1,ch:'L',band:'Full'},{x:5,y:1.5,h:1.6,v:1.1,ch:'R',band:'Full'}]; // original mix on a stereo pair: AI separation is lossy — Map stems opts into the 4-box rig
+    const base='demos/'+d.id+'/',mr=await fetch(base+'mix.flac');
+    if(!mr.ok)throw new Error('mix http '+mr.status);
+    const mix=await AC.decodeAudioData(await mr.arrayBuffer());
+    stopPbSafe();clearStems();buf=mix;srcMono=mix.numberOfChannels<2;playOffset=0;
+    room={w:10,l:10,h:10};listener.x=5;listener.y=5;listener.yaw=0;listener.pitch=0;furniture.length=0;showFurniture();
+    sps=[{x:2,y:2,h:1.6,v:1.1,ch:'L',band:'Full'},{x:8,y:2,h:1.6,v:1.1,ch:'R',band:'Full'}]; // original mix on a stereo pair: AI separation is lossy — Map stems opts into the 4-box rig
     $('hq').checked=true;$('walls').checked=true;$('roomAmt').value=0.04;$('mvol').value=0.7;$('bal').value=0;
     TRIM={l:1,r:1};$('trimL').value=1;$('trimR').value=1;
-    $('rw').value=6;$('rl').value=8;$('rh').value=3;$('yaw').value=0;$('look').value=0;$('uni').checked=true;listener.useSensor=false;
+    $('rw').value=10;$('rl').value=10;$('rh').value=10;$('yaw').value=0;$('look').value=0;$('uni').checked=true;listener.useSensor=false;
     $('width').value=1;$('align').checked=false;$('air').checked=false;$('wallAbs').value=0.65;$('furn').value='Empty';SWAP=false;$('swap').checked=false;
-    $('demoSolo').hidden=true;$('mapStems').style.display='';selIdx=0;showSel();draw();updTime();
+    selIdx=0;showSel();draw();updTime();
     const credit=$('demoCredit');credit.replaceChildren(document.createTextNode(d.title+' by '+d.artist+(d.featuring?' featuring '+d.featuring:'')+' — excerpted, faded and AI-separated. '));
     for(const [text,url] of [['Original & credits',d.source],['CC BY license',d.license],['Full attribution','https://github.com/Immortaljeetsingh/music-stage#bundled-demo-credits']]){const a=document.createElement('a');a.textContent=text;a.href=url;credit.append(a,document.createTextNode(' · '));}
-    say(d.title+' — '+d.artist+' · CC BY · 24s demo. Original mix on a stereo pair — press Play. Map stems for the separated 4-box rig.');
+    say(d.title+' — '+d.artist+' · CC BY · 24s demo. Mix ready — press Play. Stems downloading in the background for Map stems.');
+    demoStemsBusy=(async()=>{ // four stems in parallel; only adopted if the user has not moved on
+      const keys=['vocals','drums','bass','other'];
+      const pairs=await Promise.all(keys.map(async k=>{const r=await fetch(base+k+'.flac');
+        if(!r.ok)throw new Error(k+' http '+r.status);
+        return[k,await AC.decodeAudioData(await r.arrayBuffer())];}));
+      const obj={};for(const [k,b] of pairs)obj[k]=b;
+      const len=obj.vocals.length;
+      if(Object.values(obj).some(b=>b.length!==len||b.numberOfChannels!==2))throw new Error('stem alignment mismatch');
+      if(gen!==demoGen)return;
+      stemBufs=obj;stemNames=Object.keys(obj);$('mapStems').style.display='';showSel();
+      say('stems ready (vocals, drums, bass, other) — Map stems to place them.');})()
+        .catch(e=>{if(gen===demoGen)say('stem download failed ('+e.message+') — the mix still plays');});
   }catch(e){say('demo load failed: '+e.message);}finally{$('loadDemo').disabled=false;}};
 loadDemoList();
 const AUH=['https://api.audius.co','https://discoveryprovider.audius.co']; // api host now gates keys; legacy still open
+$('quick').onclick=e=>{const b=e.target.closest('button[data-q]');if(!b)return;$('q').value=b.dataset.q;$('search').click();};
 $('search').onclick=async()=>{
   $('res').innerHTML='';const q=$('q').value.trim();if(!q)return;
   try{say('searching…');
@@ -566,10 +585,14 @@ $('search').onclick=async()=>{
         ()=>loadRemote(found.h+'/v1/tracks/'+t.id+'/stream?app_name=STAGE_TEST',t.title)));
       say(found.list.length?found.list.length+' found':'nothing found');
     }else{
-      const r=await fetch('https://archive.org/advancedsearch.php?q='+encodeURIComponent(q+' AND mediatype:audio')+'&fl[]=identifier&fl[]=title&fl[]=creator&rows=8&output=json');
+      const r=await fetch('https://archive.org/advancedsearch.php?q='+encodeURIComponent(q+' AND mediatype:audio')+'&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=year&rows=12&sort[]=downloads+desc&output=json');
       if(!r.ok)throw new Error('http '+r.status);
       const j=await r.json();
-      (j.response.docs||[]).forEach(d=>addRes((d.title||d.identifier)+' — '+(d.creator||''),
+      const docs=j.response.docs||[],words=q.toLowerCase().split(/\s+/).filter(w=>w.length>2);
+      // archive titles are often keyword soup: rank the ones that actually mention the query first
+      docs.sort((a,b)=>{const sc=d=>{const t=((d.title||'')+' '+(d.creator||'')).toLowerCase();
+        return words.reduce((n,w)=>n+(t.includes(w)?1:0),0);};return sc(b)-sc(a);});
+      docs.forEach(d=>addRes((d.title||d.identifier)+' — '+(d.creator||'')+(d.year?' ('+d.year+')':''),
         async()=>{say('resolving…');
           const m=await (await fetch('https://archive.org/metadata/'+d.identifier)).json();
           const cands=(m.files||[]).filter(f=>/\.(mp3|ogg|m4a|opus)$/i.test(f.name||''));
@@ -577,7 +600,7 @@ $('search').onclick=async()=>{
           const f=cands[0];
           if(!f){say('no playable file in '+d.identifier);return;}
           loadRemote('https://archive.org/download/'+d.identifier+'/'+encodeURIComponent(f.name),d.title||d.identifier);}));
-      say((j.response.docs||[]).length+' found — pick one, smallest file loads');
+      say(docs.length+' found — pick one, smallest file loads');
     }
   }catch(e){say('search failed ('+((e&&e.message)||'network')+') — upload a file instead');}
 };
