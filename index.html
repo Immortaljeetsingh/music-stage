@@ -19,11 +19,13 @@
  --r:34px;--r-md:26px;--r-ctl:14px;--shadow:0 20px 50px rgba(0,0,0,.4);
  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,"Segoe UI",Roboto,sans-serif;
 }
-@media (prefers-color-scheme:light){:root{
+:root[data-appearance=light]{
  --label:#000;--label2:rgba(60,60,67,.6);--label3:rgba(60,60,67,.3);
  --bg:#F2F2F7;--glass-rgb:250,250,252;--glass-a:.62;--card-rgb:255,255,255;--card-a:.72;
  --sep:rgba(60,60,67,.29);--ring:#dbdbdb;--spec:rgba(255,255,255,.9);--fill:rgba(118,118,128,.16);--fill2:rgba(118,118,128,.12);
- --shadow:0 20px 50px rgba(0,0,0,.14);}}
+ --tab-sel:rgba(60,60,67,.16);--seg-sel:#fff;
+ --shadow:0 20px 50px rgba(0,0,0,.14);}
+:root[data-appearance=light] body::before{opacity:.7}
 html{-webkit-text-size-adjust:100%}
 body{font-family:var(--font);font-size:16px;line-height:1.35;color:var(--label);background:var(--bg);
  margin:0;padding:max(12px,env(safe-area-inset-top)) 16px calc(112px + env(safe-area-inset-bottom));max-width:1440px;margin-inline:auto;
@@ -33,7 +35,12 @@ body::before{content:'';position:fixed;inset:-15%;z-index:-1;pointer-events:none
   radial-gradient(42% 36% at 84% 6%,rgba(191,90,242,.26),transparent 70%),
   radial-gradient(50% 42% at 72% 92%,rgba(48,209,88,.17),transparent 70%),
   radial-gradient(42% 38% at 8% 88%,rgba(255,55,95,.15),transparent 70%)}
-@media (prefers-color-scheme:light){body::before{opacity:.7}}
+@media (prefers-color-scheme:light){body::before{opacity:.7}} /* no-JS fallback; JS writes data-appearance */
+.seg{display:flex;gap:2px;padding:2px;border-radius:12px;background:var(--fill2);box-shadow:inset 0 0 0 .5px var(--sep)}
+.seg button{flex:1 1 0;min-height:40px;padding:0 8px;border-radius:10px;background:transparent;box-shadow:none;
+ font:590 15px/1 var(--font);color:var(--label2);letter-spacing:-.1px}
+.seg button[aria-pressed=true]{background:var(--seg-sel);color:var(--label);box-shadow:0 3px 8px rgba(0,0,0,.24)}
+.seg button:active{transform:scale(.97);opacity:.9}
 a{color:var(--blue)}
 ::selection{background:rgba(10,132,255,.35)}
 
@@ -196,11 +203,13 @@ footer a{color:var(--blue)}
  .ctl label:has(select),.ctl label:has(>input[type=range]){width:100%}
  .ctl label:has(select) select{flex:1 1 auto}
  .ctl input[type=range]{flex:1 1 100%;width:100%!important}
+ .seg button{min-height:44px}
 }
 @media(max-width:380px){
  .tab{font-size:9.5px}
  .tab svg{width:21px;height:21px}
  .topbar h1{font-size:24px}
+ .seg button{font-size:14px;padding:0 4px}
 }
 </style>
 <header class="topbar glass"><div><div class="eyebrow">Your personal listening room</div><h1>Music Stage</h1><p class="sub">Place your sound. Find your sweet spot.</p></div><span class="badge">Local audio studio</span></header>
@@ -228,10 +237,14 @@ footer a{color:var(--blue)}
 <label>Look <input type=range id=look min=-60 max=60 value=0 style="width:80px" aria-label="Manual look up down"></label>
 <label>Response <input type=range id=sens min=0.5 max=2 step=0.1 value=1 style="width:70px" aria-label="Tracking sensitivity"></label></div>
 </section>
+<section class="sec" aria-labelledby="h-app"><h4 id="h-app">Appearance</h4>
+<div class="seg" role="group" aria-label="Appearance"><button data-app="" aria-pressed="true">System</button><button data-app=light aria-pressed="false">Light</button><button data-app=dark aria-pressed="false">Dark</button></div>
+<p class=hint>System follows your device's Light or Dark setting. An explicit choice overrides it and is remembered on this device.</p>
+</section>
 <section class="sec" aria-labelledby="h-look"><h4 id="h-look">Liquid Glass</h4>
 <div class="ctl" id=hudGlass><label style="width:100%">Transparency <input type=range id=glassAmt min=0 max=100 step=1 value=65 aria-label="Liquid Glass transparency, ultra clear to fully tinted"></label>
 <div class="ends" style="width:100%"><span>ultra clear</span><span>fully tinted</span></div></div>
-<p class=hint>iOS&nbsp;27 lets you dial the glass from ultra clear to fully tinted. Follows your system Light/Dark appearance; Reduce Transparency and Increase Contrast are honored.</p>
+<p class=hint>iOS&nbsp;27 lets you dial the glass from ultra clear to fully tinted. Set by the Appearance control above; Reduce Transparency and Increase Contrast are honored.</p>
 </section>
 </div>
 <div class="col-ctl">
@@ -292,7 +305,7 @@ footer a{color:var(--blue)}
 <button class="tab" role="tab" data-tab=sound aria-selected=false aria-controls="h-snd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-4M8 17V7M12 20V4M16 17V7M20 14v-4"/></svg>Sound</button>
 <button class="tab prominent" role="tab" data-tab=stage aria-selected=true aria-controls="h-stage"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="10" rx="2.5"/><path d="M7 17v3M17 17v3M6 7V5h12v2"/></svg>Stage</button>
 </nav>
-<footer class="hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · ears at 1.6m · build ios27-1</footer>
+<footer class="hint">Drag the green listener to walk the room · WASD/arrows also walk · click empty floor to teleport · ears at 1.6m · build ios27-2</footer>
 <script>
 // ponytail: mono-feed per speaker (stereo->HRTF sounds phasey/left-biased). L/R split restores separation.
 let AC, buf, playing=[], live=[], master, verb, wet, comp, balN, trimL=null, trimR=null, anL=null, anR=null;
@@ -1003,4 +1016,18 @@ try{glassAmt.value=localStorage.getItem('glass')||65;}catch(e){}
 glassAmt.oninput=()=>{applyGlass();try{localStorage.setItem('glass',glassAmt.value);}catch(e){}};
 applyGlass();
 addEventListener('scroll',()=>document.body.classList.toggle('scrolled',scrollY>6),{passive:true});
+// appearance: System tracks the device; Light/Dark override it (iOS Settings behaviour) and persist
+const AP=matchMedia('(prefers-color-scheme:light)');
+let appearance='';
+try{appearance=localStorage.getItem('appearance')||'';}catch(e){}
+function applyAppearance(){
+  const v=appearance||(AP.matches?'light':'dark');
+  rootStyle.setProperty('color-scheme',v);
+  document.documentElement.setAttribute('data-appearance',v);
+  document.querySelectorAll('.seg [data-app]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.app||'')===appearance)));}
+AP.addEventListener('change',()=>{if(!appearance)applyAppearance();});
+document.querySelector('.seg').addEventListener('click',e=>{const b=e.target.closest('[data-app]');if(!b)return;
+  appearance=b.dataset.app;try{localStorage.setItem('appearance',appearance);}catch(_){}
+  applyAppearance();});
+applyAppearance();
 </script>

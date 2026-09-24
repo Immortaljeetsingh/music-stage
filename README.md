@@ -24,7 +24,7 @@ The shell follows Apple's iOS 27 design language, built from the WWDC26 material
 - **Uniform toolbar:** the floating glass header turns opaque with a hairline bottom border once content scrolls beneath it (iOS 27's uniform scroll-edge treatment, hard blur + border).
 - **Prominent Tab:** the Stage tab sits in its own trailing capsule, the iOS 27 role that replaced the search-only slot.
 - **Controls:** 44pt minimum hit targets, iOS switch toggles (label leading, control trailing), iOS sliders with 28pt thumbs, tinted glass buttons, and a pressed-state scale animation.
-- **Appearance:** follows the system Light/Dark setting; `prefers-reduced-transparency`, `prefers-contrast: more`, and `prefers-reduced-motion` are honored, and safe-area insets are respected on notched devices.
+- **Appearance (Stage tab):** an iOS segmented control with **System / Light / Dark**. System tracks the device setting; an explicit choice overrides it and persists in `localStorage`. `prefers-reduced-transparency`, `prefers-contrast: more`, and `prefers-reduced-motion` are honored, and safe-area insets are respected on notched devices.
 
 ## Sound controls and balance
 

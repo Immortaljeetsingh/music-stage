@@ -30,6 +30,18 @@ const {chromium}=require('playwright');
       const g1=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--glass-opacity-scale'));
       assert(g0!==g1,'glass slider changes material opacity at '+width);
       await page.evaluate(()=>{const g=$('glassAmt');g.value=65;g.dispatchEvent(new Event('input'));});
+      // appearance: System follows the device, an explicit choice overrides and survives reload
+      const ap0=await page.evaluate(()=>[document.documentElement.getAttribute('data-appearance'),getComputedStyle(document.body).backgroundColor]);
+      assert.equal(ap0[0],'light','System follows device appearance at '+width);
+      await page.locator('.seg [data-app=dark]').click();
+      const apDark=await page.evaluate(()=>[document.documentElement.getAttribute('data-appearance'),getComputedStyle(document.body).backgroundColor]);
+      assert.equal(apDark[0],'dark','Dark override applies at '+width);
+      assert.notEqual(apDark[1],ap0[1],'palette actually changes at '+width);
+      await page.reload();
+      assert.equal(await page.evaluate(()=>document.documentElement.getAttribute('data-appearance')),'dark','appearance persists across reload at '+width);
+      await page.locator('.seg [data-app=""]').click();
+      assert.deepEqual(await page.evaluate(()=>[document.documentElement.getAttribute('data-appearance'),getComputedStyle(document.body).backgroundColor]),ap0,'System restores device appearance at '+width);
+      await page.evaluate(()=>localStorage.removeItem('appearance'));
       // furniture: add in Room, drag on the Stage canvas, read fields back in Room
       for(const [type,id] of [['Bed','addBed'],['Sofa','addSofa'],['Wardrobe','addWardrobe']]){
         await go(page,'room');
