@@ -1,0 +1,5 @@
+<resources>
+    <color name="stage_background">#05070C</color>
+    <color name="icon_start">#0A84FF</color>
+    <color name="icon_end">#BF5AF2</color>
+</resources>

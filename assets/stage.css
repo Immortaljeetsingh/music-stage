@@ -444,3 +444,10 @@ html[data-experience=simple] .advanced-only{display:none!important}
 }
 @media(max-width:600px){#headroomState{flex:1 0 100%;text-align:left;margin-left:0}}
 @media(prefers-reduced-transparency:reduce){.glass,.sec,.topbar,details.group,.tabbar,.mini-player,.welcome-dialog{-webkit-backdrop-filter:none;backdrop-filter:none}}
+
+/* Android app: the System-wide sound card is created by android-bridge.js only inside the app. */
+html[data-platform=android] #systemSection{order:-4}
+.system-card .ctl button{min-width:120px}
+.system-setup{display:flex;flex-direction:column;gap:10px}
+.system-steps{margin:0;padding-left:20px}
+.system-steps li+li{margin-top:6px}

@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">Music Stage</string>
+    <string name="notification_title">Music Stage is shaping your audio</string>
+    <string name="notification_starting">Starting system-wide sound…</string>
+    <string name="notification_running">Apps that allow capture play through your stage.</string>
+    <string name="action_stop">Stop</string>
+    <string name="channel_name">System-wide sound</string>
+    <string name="channel_description">Shown while other apps\' audio is processed through your stage.</string>
+    <string name="status_no_session_access">Waiting for access to audio sessions. Finish the one-time setup.</string>
+    <string name="error_projection">Android did not grant audio capture.</string>
+    <string name="error_projection_declined">Capture was declined, so nothing changed.</string>
+    <string name="error_foreground">Android refused to start the background service.</string>
+    <string name="error_audio_permission">Android needs the audio-recording permission to capture other apps\' playback. The microphone is never used.</string>
+    <string name="setup_required">Finish the one-time setup first.</string>
+    <string name="setup_shizuku_not_running">Open Shizuku and start it, then try again.</string>
+    <string name="setup_shizuku_old">Update Shizuku to version 11 or newer.</string>
+    <string name="setup_shizuku_denied">Shizuku permission was declined.</string>
+    <string name="setup_working">Granting access with Shizuku…</string>
+    <string name="setup_done">Setup complete. You can start system-wide sound.</string>
+    <string name="setup_failed_code">Setup failed (exit code %1$d). Try the ADB command instead.</string>
+    <string name="setup_failed">Setup failed: %1$s</string>
+    <string name="clipboard_label">Music Stage setup command</string>
+    <string name="copied">Copied</string>
+</resources>

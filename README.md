@@ -125,6 +125,18 @@ AirPods Pro 3 is explicitly **uncalibrated / bypass**: no numerical correction w
 
 Head tracking uses the device running the page's orientation events, where supported and permitted on HTTPS. It does not relay a phone's sensors to a laptop. Manual Turn is available without sensors; experimental rendering has limitations, including non-personalized elevation cues.
 
+## Android app: system-wide sound
+
+The Android app (Android 10+) bundles this editor and runs other apps' audio through your stage. Download the APK from the repository's Releases page, open Music Stage, and use the **System-wide sound** card at the top of the Stage tab.
+
+- **How it works:** Android does not let apps insert custom processing into other apps' output, so the app captures media and game audio from apps that allow capture ([AudioPlaybackCapture](https://developer.android.com/media/platform/av-capture)), silences their direct output with a maximum-priority DynamicsProcessing effect on each session, renders the capture through a Java port of this Web Audio graph, and plays the result from a stream that is itself excluded from capture. Apps whose capture policy is blocked or unknown are never silenced, so they keep playing normally.
+- **One-time setup:** reading other apps' audio sessions needs the `DUMP` permission, which only the shell user can grant. Use **Grant with Shizuku** in the app, or run once from a computer: `adb shell pm grant io.github.immortaljeetsingh.musicstage android.permission.DUMP && adb shell appops set io.github.immortaljeetsingh.musicstage PROJECT_MEDIA allow` (the second part skips the screen-capture prompt on each start).
+- **Limits:** apps that block capture (for example Spotify, Chrome and SoundCloud) stay unprocessed; processing adds roughly a tenth of a second of delay; other equalizer apps can conflict; on Android 15+ you may need **Disable screen share protections** in Developer options to keep the notification visible. The same approach and limits are documented by [RootlessJamesDSP](https://github.com/timschneeb/RootlessJamesDSP).
+- **Engine parity:** `android/app/src/main/java/.../engine` mirrors `assets/audio-engine.js`: Web Audio biquad formulas (Butterworth Q in dB), StereoPanner and equal-power PannerNode laws, alignment delays, image-source reflections, a normalized partitioned-convolution tail, the spatial-mode compressor with the browser's makeup gain, and the −1 dBFS ceiling. JVM tests assert the web suite's measured values, for example the Clarity gain (0.0823 peak for a 0.2 left-only sine), the 0.664 extreme-gain peak, Butterworth corners, and < 0.1 dB spatial symmetry.
+- **Build:** JDK 17, Android SDK 35 and Gradle 8.10: `cd android && gradle testReleaseUnitTest assembleRelease`. The `Android` GitHub Actions workflow runs the same build on every change and can publish a release; set `MUSIC_STAGE_KEYSTORE_BASE64`, `MUSIC_STAGE_KEYSTORE_PASSWORD`, `MUSIC_STAGE_KEY_ALIAS` and `MUSIC_STAGE_KEY_PASSWORD` secrets to sign with a permanent key.
+
+Content from linked technical references was paraphrased for compliance with licensing restrictions.
+
 ## Stems and external services
 
 `stems.html` loads the exactly pinned Demucs Web 1.0.2 and ONNX Runtime Web 1.20.0 browser modules; the ONNX import uses the package-exported `ort.bundle.min.mjs` path. The tool checks file duration, estimates working memory, reports the selected WebGPU/WASM provider and thread count, downloads the model with progress/size/timeout protection, supports segment-boundary cancellation, and checks storage quota before writing four stems. Results/model memory and saved stems can be cleared explicitly. The roughly 172 MB model is externally hosted and browser-cached. GitHub Pages does not supply cross-origin isolation headers, so WebAssembly safely falls back to one thread.
@@ -181,6 +193,7 @@ npm run test:glass
 npm run test:demos
 npm run test:stems
 npm run test:mobile
+npm run test:android-web
 ```
 
 CI installs Playwright Chromium and runs the same suite. Tests cover server isolation/security headers and ranges, centered audio symmetry, dry passband and limiter quality, responsive interaction and accessibility sizing, player metadata/transport/mini-player, project persistence, all seven demo bundles with on-demand stems, legacy IndexedDB stem compatibility, and the corrected stem runtime module path.

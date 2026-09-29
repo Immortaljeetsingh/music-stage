@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "start": "node server.cjs",
-    "test:syntax": "node --check assets/theme-init.js && node --check assets/media-utils.js && node --check assets/stems.js && node --check assets/stage-app.js && node --check assets/audio-engine.js && node --check assets/stage-renderer.js && node --check assets/player.js && node --check assets/stage-ui.js && node --check assets/project.js && node --check assets/accessibility.js && node --check server.cjs && node --check test-helpers.cjs && node --check test-server.cjs && node --check test.cjs && node --check test-fidelity.cjs && node --check analyze-local-audio.cjs && node --check test-ui.cjs && node --check test-player.cjs && node --check test-visual.cjs && node --check test-glass-visual.cjs && node --check test-demos.cjs && node --check test-stems.cjs && node --check test-quality.cjs && node --check test-mobile-performance.cjs",
+    "test:syntax": "node --check assets/theme-init.js && node --check assets/android-bridge.js && node --check test-android-bridge.cjs && node --check assets/media-utils.js && node --check assets/stems.js && node --check assets/stage-app.js && node --check assets/audio-engine.js && node --check assets/stage-renderer.js && node --check assets/player.js && node --check assets/stage-ui.js && node --check assets/project.js && node --check assets/accessibility.js && node --check server.cjs && node --check test-helpers.cjs && node --check test-server.cjs && node --check test.cjs && node --check test-fidelity.cjs && node --check analyze-local-audio.cjs && node --check test-ui.cjs && node --check test-player.cjs && node --check test-visual.cjs && node --check test-glass-visual.cjs && node --check test-demos.cjs && node --check test-stems.cjs && node --check test-quality.cjs && node --check test-mobile-performance.cjs",
     "test:server": "node test-server.cjs",
     "test:audio": "node test.cjs && node test-quality.cjs && node test-fidelity.cjs",
     "test:fidelity": "node test-fidelity.cjs",
@@ -18,7 +18,8 @@
     "test:demos": "node test-demos.cjs",
     "test:stems": "node test-stems.cjs",
     "test:mobile": "node test-mobile-performance.cjs",
-    "test": "npm run test:syntax && npm run test:server && npm run test:audio && npm run test:ui && npm run test:player && npm run test:visual && npm run test:glass && npm run test:demos && npm run test:stems && npm run test:mobile"
+    "test:android-web": "node test-android-bridge.cjs",
+    "test": "npm run test:syntax && npm run test:server && npm run test:audio && npm run test:ui && npm run test:player && npm run test:visual && npm run test:glass && npm run test:demos && npm run test:stems && npm run test:mobile && npm run test:android-web"
   },
   "engines": {
     "node": ">=20"

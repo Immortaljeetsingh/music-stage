@@ -14,3 +14,8 @@ test-results/
 .DS_Store
 Thumbs.db
 visual-*.png
+# Android signing material stays on the owner's machine and in encrypted CI secrets
+.signing/
+*.p12
+*.jks
+*.keystore

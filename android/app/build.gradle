@@ -1,0 +1,78 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Release signing comes from CI secrets; without them the release APK is signed with the debug key.
+def keystorePath = System.getenv('MUSIC_STAGE_KEYSTORE')
+def releaseSigning = keystorePath != null && !keystorePath.isEmpty() && file(keystorePath).exists()
+
+android {
+    namespace 'io.github.immortaljeetsingh.musicstage'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.immortaljeetsingh.musicstage'
+        minSdk 29
+        targetSdk 35
+        versionCode Integer.parseInt(System.getenv('MUSIC_STAGE_VERSION_CODE') ?: '1')
+        versionName System.getenv('MUSIC_STAGE_VERSION_NAME') ?: '1.0.0'
+    }
+
+    signingConfigs {
+        if (releaseSigning) {
+            release {
+                storeFile file(keystorePath)
+                storeType 'pkcs12'
+                storePassword System.getenv('MUSIC_STAGE_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('MUSIC_STAGE_KEY_ALIAS')
+                keyPassword System.getenv('MUSIC_STAGE_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig releaseSigning ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            assets.srcDir(file("$buildDir/generated/musicStageWeb"))
+        }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+}
+
+// The editor UI is the web app at the repository root, bundled so it works offline.
+tasks.register('copyWebApp', Sync) {
+    from(rootProject.file('..')) {
+        include 'index.html', 'stems.html', 'LICENSE', 'assets/**'
+    }
+    into file("$buildDir/generated/musicStageWeb/web")
+}
+tasks.named('preBuild') {
+    dependsOn 'copyWebApp'
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'dev.rikka.shizuku:api:13.1.5'
+    implementation 'dev.rikka.shizuku:provider:13.1.5'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+}
