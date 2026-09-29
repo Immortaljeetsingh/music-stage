@@ -28,12 +28,27 @@ const {closeServer,launchBrowser,listen}=require('./test-helpers.cjs');
       const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
       await page.goto(base+'/index.html');
       await page.waitForFunction(()=>window.__nativeCalls.some(call=>call[0]==='setConfig'));
-      const setup=await page.evaluate(()=>{const card=document.getElementById('systemSection'),player=document.getElementById('playerSection');
-        return {platform:document.documentElement.dataset.platform,first:card.getBoundingClientRect().top<player.getBoundingClientRect().top,pill:document.getElementById('systemState').textContent,
-          toggleDisabled:document.getElementById('systemToggle').disabled,setupVisible:!document.getElementById('systemSetup').hidden,appearance:window.__nativeCalls.filter(c=>c[0]==='appearance').pop()?.[1],
+      const setup=await page.evaluate(()=>{const card=document.getElementById('systemSection'),player=document.getElementById('playerSection'),settings=document.getElementById('panel-sound');
+        return {platform:document.documentElement.dataset.platform,playerFirst:player.getBoundingClientRect().top<card.getBoundingClientRect().top,hero:player.classList.contains('android-player-hero'),
+          playerTab:document.getElementById('tab-stage').textContent.trim(),settingsTab:document.getElementById('tab-sound').textContent.trim(),musicTab:document.getElementById('tab-source').textContent.trim(),
+          tourText:document.querySelector('#welcomeDialog ol').textContent,
+          stageMoved:document.querySelector('.stage').closest('#panel-sound')===settings,selectedMoved:document.getElementById('sel').closest('#panel-sound')===settings,
+          appearanceMoved:document.getElementById('appGroup').parentElement===settings,headMoved:document.getElementById('headGroup').parentElement===settings,
+          modeMoved:document.getElementById('modeToggle').closest('#androidExperienceGroup')!==null,uniqueIds:['playerSection','systemSection','appGroup','headGroup','modeToggle','c'].every(id=>document.querySelectorAll('#'+id).length===1),
+          noOverflow:document.documentElement.scrollWidth<=innerWidth,playerBackdrop:getComputedStyle(player).backdropFilter,
+          backdropCount:[...document.querySelectorAll('.glass,.sec')].filter(el=>el.offsetParent!==null&&getComputedStyle(el).backdropFilter!=='none').length,
+          pill:document.getElementById('systemState').textContent,toggleDisabled:document.getElementById('systemToggle').disabled,setupVisible:!document.getElementById('systemSetup').hidden,appearance:window.__nativeCalls.filter(c=>c[0]==='appearance').pop()?.[1],
           config:JSON.parse(window.__nativeCalls.find(c=>c[0]==='setConfig')[1])};});
       assert.equal(setup.platform,'android');
-      assert(setup.first,'the System-wide card leads the Stage column');
+      assert(setup.playerFirst,'the glass player leads the Android Player view');
+      assert.equal(setup.hero,true,'the existing player receives the Android hero material');
+      assert.deepEqual([setup.musicTab,setup.settingsTab,setup.playerTab],['Music','Settings','Player']);
+      assert.match(setup.tourText,/in Music/);assert.match(setup.tourText,/on Player/);
+      assert.equal(setup.stageMoved&&setup.selectedMoved&&setup.appearanceMoved&&setup.headMoved&&setup.modeMoved,true,'customization nodes move into Settings');
+      assert.equal(setup.uniqueIds,true,'the Android layout moves controls without cloning IDs');
+      assert.equal(setup.noOverflow,true,'the Android shell has no horizontal overflow');
+      assert.notEqual(setup.playerBackdrop,'none','the Android hero keeps real glass diffusion');
+      assert(setup.backdropCount<=2,'the Player view keeps the mobile blur budget');
       assert.equal(setup.pill,'Setup needed');
       assert.equal(setup.toggleDisabled,true,'Start waits for the one-time setup');
       assert.equal(setup.setupVisible,true);
@@ -55,8 +70,15 @@ const {closeServer,launchBrowser,listen}=require('./test-helpers.cjs');
       assert.match(running.summary,/Processing YouTube Music, Deezer\./);
       assert.match(running.notes,/Spotify/);assert.match(running.notes,/64 ms/);
       const box=await page.locator('#systemToggle').boundingBox();assert(box.height>=44,'44pt touch target');
-      await page.waitForTimeout(250); // let the enabled-state transition settle before the visual check
-      await page.screenshot({path:path.join(__dirname,`visual-android-card-${scheme}.png`)});
+      await page.evaluate(()=>window.scrollTo(0,0));
+      await page.waitForTimeout(250); // let layout and the enabled-state transition settle before the visual check
+      await page.screenshot({path:path.join(__dirname,`visual-android-player-${scheme}.png`)});
+      await page.locator('#tab-sound').click();
+      await page.waitForTimeout(150);
+      const settingsVisible=await page.evaluate(()=>{const panel=document.getElementById('panel-sound'),mode=document.getElementById('modeToggle');return panel.offsetParent!==null&&mode.offsetParent!==null;});
+      assert.equal(settingsVisible,true,'Settings opens with the customization level control visible');
+      await page.screenshot({path:path.join(__dirname,`visual-android-settings-${scheme}.png`)});
+      await page.locator('#tab-stage').click();
       await page.locator('#systemToggle').click();
       await page.evaluate(()=>window.MusicStageNative.onStatus({supported:true,state:'off',running:false,dumpGranted:true,processed:[],blocked:[],unmuted:[]}));
       await page.locator('#systemToggle').click();
@@ -64,6 +86,6 @@ const {closeServer,launchBrowser,listen}=require('./test-helpers.cjs');
       assert.deepEqual(errors,[]);
       await context.close();
     }
-    console.log('PASS: Android bridge renders the System-wide card, follows native status, drives start/stop/setup, and syncs the live stage; browsers are unaffected.');
+    console.log('PASS: Android bridge presents a glass player-first view, moves customization into Settings, follows native status, and leaves browsers unaffected.');
   }finally{if(browser)await browser.close();await closeServer(server);}
 })().catch(error=>{console.error(error);process.exitCode=1;});

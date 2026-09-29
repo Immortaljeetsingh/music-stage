@@ -445,9 +445,101 @@ html[data-experience=simple] .advanced-only{display:none!important}
 @media(max-width:600px){#headroomState{flex:1 0 100%;text-align:left;margin-left:0}}
 @media(prefers-reduced-transparency:reduce){.glass,.sec,.topbar,details.group,.tabbar,.mini-player,.welcome-dialog{-webkit-backdrop-filter:none;backdrop-filter:none}}
 
-/* Android app: the System-wide sound card is created by android-bridge.js only inside the app. */
+/* Android app: player-first shell and consolidated customization settings. */
+html[data-platform=android] #playerSection{order:-5}
 html[data-platform=android] #systemSection{order:-4}
-.system-card .ctl button{min-width:120px}
+html[data-platform=android] .topbar{align-items:center;padding:13px 16px;border-radius:24px;margin-bottom:12px;background:linear-gradient(145deg,rgba(255,255,255,.12),transparent 48%),rgba(var(--glass-rgb),.62)}
+html[data-platform=android] .topbar h1{font-size:25px;letter-spacing:-.45px}
+html[data-platform=android] .topbar .sub{display:none}
+html[data-platform=android] .topbar .eyebrow{margin-bottom:6px;font-size:9px;letter-spacing:2px}
+html[data-platform=android] .topbar .badge{display:none}
+html[data-platform=android] #playerSection.android-player-hero{isolation:isolate;gap:18px;padding:24px;border-radius:36px;overflow:hidden;background:
+ radial-gradient(90% 75% at 4% -8%,rgba(10,132,255,.34),transparent 62%),
+ radial-gradient(75% 72% at 104% 104%,rgba(48,209,88,.2),transparent 64%),
+ radial-gradient(56% 55% at 80% 8%,rgba(191,90,242,.2),transparent 72%),
+ linear-gradient(145deg,rgba(var(--card-rgb),calc(.7*var(--glass-opacity-scale))),rgba(var(--card-rgb),calc(.46*var(--glass-opacity-scale))));
+ border:1px solid rgba(255,255,255,.38);-webkit-backdrop-filter:blur(calc(24px*var(--glass-blur-scale))) saturate(185%);backdrop-filter:blur(calc(24px*var(--glass-blur-scale))) saturate(185%);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.48),inset 0 -1px 0 rgba(0,0,0,.34),0 28px 70px rgba(0,0,0,.4),0 8px 30px rgba(10,132,255,.13)}
+:root[data-appearance=light][data-platform=android] #playerSection.android-player-hero{background:
+ radial-gradient(90% 75% at 4% -8%,rgba(10,132,255,.22),transparent 62%),
+ radial-gradient(75% 72% at 104% 104%,rgba(48,209,88,.16),transparent 64%),
+ radial-gradient(56% 55% at 80% 8%,rgba(191,90,242,.15),transparent 72%),
+ linear-gradient(145deg,rgba(255,255,255,.66),rgba(247,250,255,.43));border-color:rgba(255,255,255,.98);box-shadow:inset 0 1px 0 #fff,inset 0 -1px 0 rgba(60,60,67,.11),0 24px 64px rgba(49,66,94,.19),0 8px 26px rgba(10,132,255,.11)}
+html[data-platform=android] #playerSection.android-player-hero::before{content:'';position:absolute;z-index:0;inset:-25% -10% auto;width:72%;aspect-ratio:1;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(255,255,255,.2),transparent 67%);filter:blur(8px)}
+html[data-platform=android] #playerSection.android-player-hero>*{position:relative;z-index:1}
+html[data-platform=android] #playerSection .player-heading{align-items:flex-start}
+html[data-platform=android] #playerSection .player-heading>div:first-child{flex-direction:column;align-items:flex-start;gap:7px}
+html[data-platform=android] #playerSection .player-heading h2{font-size:11px;letter-spacing:1.7px}
+html[data-platform=android] #playerSection .now-playing{grid-template-columns:1fr;justify-items:center;gap:14px;text-align:center}
+html[data-platform=android] #playerSection .album-art{width:min(52vw,214px);border-radius:30px;font-size:58px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 24px 48px rgba(0,0,0,.36),0 8px 24px rgba(10,132,255,.22)}
+html[data-platform=android] #playerSection .track-copy{align-items:center;width:100%;gap:5px}
+html[data-platform=android] #trackTitle{max-width:100%;font-size:27px;line-height:1.1;letter-spacing:-.65px}
+html[data-platform=android] #trackArtist{max-width:100%;font-size:16px}
+html[data-platform=android] #trackAlbum,html[data-platform=android] #trackDetails{max-width:100%}
+html[data-platform=android] #playerSection .player-progress{gap:5px;padding:9px 13px 8px;border:1px solid rgba(255,255,255,.12);border-radius:17px;background:rgba(var(--glass-rgb),.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+html[data-platform=android] #playerSection .player-controls{display:grid;grid-template-columns:48px 52px 68px 52px 48px;align-items:center;justify-content:center;gap:8px}
+html[data-platform=android] #playerSection .player-controls button{width:48px;min-width:48px;height:48px;min-height:48px;padding:0;border-radius:50%}
+html[data-platform=android] #playerSection #repeat{grid-column:1;grid-row:1}
+html[data-platform=android] #playerSection #back{grid-column:2;grid-row:1}
+html[data-platform=android] #playerSection #play{grid-column:3;grid-row:1;width:68px;min-width:68px;height:68px;min-height:68px;border-radius:50%;font-size:0}
+html[data-platform=android] #playerSection #play::before{content:'▶';display:block;font-size:25px;line-height:1;transform:translateX(2px)}
+html[data-platform=android] #playerSection:has(.now-playing[data-state=playing]) #play::before{content:'Ⅱ';font-size:24px;transform:none}
+html[data-platform=android] #playerSection #fwd{grid-column:4;grid-row:1}
+html[data-platform=android] #playerSection #stop{grid-column:5;grid-row:1}
+html[data-platform=android] #playerSection #stop,html[data-platform=android] #playerSection #repeat{font-size:0}
+html[data-platform=android] #playerSection #stop::before{content:'■';font-size:13px}
+html[data-platform=android] #playerSection #repeat::before{content:'↻';font-size:23px}
+html[data-platform=android] #playerSection .player-output{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:13px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(var(--glass-rgb),.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+html[data-platform=android] #playerSection .volume-control{grid-column:1/-1;display:grid;grid-template-columns:auto minmax(0,1fr);width:100%;max-width:none}
+html[data-platform=android] #playerSection #mute{grid-column:1;justify-self:start}
+html[data-platform=android] #playerSection .meters{grid-column:2}
+html[data-platform=android] #headroomState{grid-column:3;flex:none;width:auto;max-width:11rem;text-align:right;margin:0}
+html[data-platform=android] .system-card{padding:17px;border-radius:26px;background:linear-gradient(145deg,rgba(255,255,255,.1),transparent 52%),rgba(var(--card-rgb),.58);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),inset 0 -1px 0 rgba(0,0,0,.25),0 12px 32px var(--glass-shadow-soft)}
+html[data-platform=android] .system-card .ctl button{min-width:120px}
+html[data-platform=android] #panel-sound.android-settings-panel{gap:12px;padding:0;border:0;background:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+html[data-platform=android] .android-settings-intro{padding:20px;border:1px solid var(--glass-edge);border-radius:28px;background:linear-gradient(145deg,rgba(255,255,255,.13),transparent 55%),rgba(var(--card-rgb),.5);box-shadow:inset 0 1px 0 var(--glass-shine),0 12px 32px var(--glass-shadow-soft)}
+html[data-platform=android] .android-settings-kicker{display:block;margin-bottom:7px;color:var(--blue);font:750 10px/1 var(--font);letter-spacing:1.8px;text-transform:uppercase}
+html[data-platform=android] .android-settings-intro h2{margin:0 0 7px;font:750 28px/1.05 var(--font);letter-spacing:-.5px;color:var(--label);text-transform:none}
+html[data-platform=android] .android-settings-group{flex:0 0 auto}
+html[data-platform=android] .android-setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+html[data-platform=android] .android-setting-row>div{min-width:0}
+html[data-platform=android] .android-setting-row strong{display:block;margin-bottom:4px;font-size:15px}
+html[data-platform=android] .android-setting-row #modeToggle{flex:0 0 auto;min-width:112px}
+html[data-platform=android] .android-stage-settings .gbody{padding-top:10px}
+html[data-platform=android] .android-stage-settings .android-settings-card{margin:0;padding:6px 0;border:0;border-radius:0;background:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+html[data-platform=android] .android-stage-settings #sel{margin-top:6px;padding:14px;border-radius:18px;background:rgba(var(--glass-rgb),.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+html[data-platform=android] .android-stage-settings canvas{border-radius:18px}
 .system-setup{display:flex;flex-direction:column;gap:10px}
 .system-steps{margin:0;padding-left:20px}
 .system-steps li+li{margin-top:6px}
+@media(max-width:899px){
+ html[data-platform=android] body{max-width:700px;padding-top:max(8px,env(safe-area-inset-top));padding-inline:10px}
+ html[data-platform=android] .topbar{position:relative;top:auto}
+ html[data-platform=android] #playerSection.android-player-hero{-webkit-backdrop-filter:blur(calc(20px*var(--glass-blur-scale))) saturate(175%);backdrop-filter:blur(calc(20px*var(--glass-blur-scale))) saturate(175%)}
+ html[data-platform=android] .tabbar{left:50%;right:auto;width:min(calc(100% - 20px),680px);transform:translateX(-50%)}
+ html[data-platform=android] .mini-player{left:50%;right:auto;width:min(calc(100% - 20px),680px);transform:translateX(-50%)}
+}
+@media(max-width:430px){
+ html[data-platform=android] #trackSource{display:none}
+ html[data-platform=android] #qualityState{max-width:none}
+ html[data-platform=android] #playerSection.android-player-hero{padding:20px 17px;gap:16px;border-radius:32px}
+ html[data-platform=android] #playerSection .album-art{width:min(49vw,196px);border-radius:27px;font-size:52px}
+ html[data-platform=android] #trackTitle{font-size:24px}
+ html[data-platform=android] #playerSection .player-controls{grid-template-columns:44px 48px 64px 48px 44px;gap:6px}
+ html[data-platform=android] #playerSection .player-controls button{width:44px;min-width:44px;height:44px;min-height:44px}
+ html[data-platform=android] #playerSection #back,html[data-platform=android] #playerSection #fwd{width:48px;min-width:48px}
+ html[data-platform=android] #playerSection #play{width:64px;min-width:64px;height:64px;min-height:64px}
+ html[data-platform=android] #headroomState{grid-column:1/-1;max-width:none;text-align:left}
+ html[data-platform=android] .android-setting-row{align-items:flex-start;flex-direction:column}
+ html[data-platform=android] .android-setting-row #modeToggle{width:100%}
+}
+@media(max-width:350px){
+ html[data-platform=android] #playerSection .player-controls{grid-template-columns:42px 44px 60px 44px 42px;gap:4px}
+ html[data-platform=android] #playerSection .player-controls button{width:42px;min-width:42px}
+ html[data-platform=android] #playerSection #back,html[data-platform=android] #playerSection #fwd{width:44px;min-width:44px}
+ html[data-platform=android] #playerSection #play{width:60px;min-width:60px;height:60px;min-height:60px}
+}
+@media(prefers-reduced-transparency:reduce){
+ html[data-platform=android] #playerSection.android-player-hero{background:rgb(var(--card-rgb));-webkit-backdrop-filter:none;backdrop-filter:none}
+ html[data-platform=android] #playerSection.android-player-hero::before{display:none}
+}

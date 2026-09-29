@@ -2,6 +2,7 @@
    first paint, so the page never flashes the wrong theme or re-flows when the full scripts load. */
 (()=>{
   const root=document.documentElement;
+  if(window.MusicStageAndroid)root.dataset.platform='android';
   let appearance='',experience='advanced',glass=65;
   try{
     appearance=localStorage.getItem('appearance')||'';
