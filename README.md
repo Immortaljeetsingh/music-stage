@@ -27,18 +27,47 @@ On phones and tablets the app uses an iOS-style tab bar: **Source**, **Room**, *
 
 The shell follows Apple's iOS 27 design language, built from the WWDC26 material updates and measured iOS 27 UI-kit values rather than a generic dark theme:
 
-- **Liquid Glass material:** layered tinted panes with 30–44 px backdrop diffusion, 190–205% saturation, directional top-edge light, dark lower-edge separation, soft depth shadows, subtle ambient grain, and colored light bleeding through from the page backdrop. Nested groups use a lighter secondary glass layer rather than stacking opaque white cards.
-- **Material accessibility:** `prefers-reduced-transparency` replaces diffusion with opaque surfaces, while increased contrast strengthens borders and reduced motion disables ambient drift.
+- **Liquid Glass material:** layered tinted panes with 30–44 px backdrop diffusion on desktop, 190–205% saturation, directional top-edge light, dark lower-edge separation, soft depth shadows, and colored light from a static page light field. Nested groups use a lighter secondary glass layer rather than stacking opaque white cards.
+- **Material accessibility:** `prefers-reduced-transparency` replaces diffusion with opaque surfaces, increased contrast strengthens borders, and reduced motion disables transitions and the playing-state cover animation.
 - **Transparency slider (Stage → Liquid Glass):** the iOS 27 system control, implemented in-page — *ultra clear* → *fully tinted* scales material opacity and diffusion and persists in `localStorage`.
-- **Uniform toolbar:** the floating glass header turns opaque with a hairline bottom border once content scrolls beneath it (iOS 27's uniform scroll-edge treatment, hard blur + border).
+- **Uniform toolbar:** on desktop the floating glass header turns opaque with a hairline bottom border once content scrolls beneath it (iOS 27's uniform scroll-edge treatment, hard blur + border). On phones it scrolls away with the page.
 - **Prominent Tab:** the Stage tab sits in its own trailing capsule, the iOS 27 role that replaced the search-only slot.
 - **Controls:** 44pt minimum hit targets, iOS switch toggles (label leading, control trailing), iOS sliders with 28pt thumbs, tinted glass buttons, and a pressed-state scale animation.
 - **Appearance (Stage tab):** an iOS segmented control with **System / Light / Dark**. System tracks the device setting; an explicit choice overrides it and persists in `localStorage`. `prefers-reduced-transparency`, `prefers-contrast: more`, and `prefers-reduced-motion` are honored, and safe-area insets are respected on notched devices.
 
+### Mobile performance
+
+Phones get the same design through a cheaper rendering path, tuned against `test-mobile-performance.cjs` (390 × 844 at 3× DPR with 4× CPU throttling in headless Chromium):
+
+- **No first-paint flash:** `assets/theme-init.js` runs in `<head>` and applies the stored appearance, Simple mode, and glass level before the body renders.
+- **Overlay-only blur:** cards sit over a static light field, so phones and tablets blur only the floating tab bar and mini player (18 px). Nested groups and controls never blur. The page background is one fixed layer with no animation, grain, blend mode, or `background-attachment: fixed`.
+- **Stable scrolling:** browser-toolbar resizes no longer re-run tab navigation, so the page can't jump back to the top. Only a real tab switch starts at the top, and tapping the active tab scrolls up.
+- **Stage touch:** vertical swipes over empty floor scroll the page; a touch that lands on a speaker, furniture, or the listener still drags it.
+- **Right-sized canvas:** the stage renders straight into a backing store matched to its displayed size: 1× on phones, where 900 logical pixels are already near native, and a true 1.5×/2× render on large HiDPI screens.
+- **Bounded playback work:** a 30 Hz transport timer replaces the per-frame loop. The clock text changes once per second, the seek thumb moves 5×/s and never under a finger, meters are compositor transforms, the OS media clock is anchored only on play, pause, seek, stop, or a repeat wrap, and identical DOM or AudioParam writes are skipped. On phones the playing cover shows a static glow ring instead of breathing. The audio context requests `latencyHint: 'playback'` for glitch-free output under load, and the reverb convolver exists only while reverb is audible.
+
+| Phone emulation measurement | Before | After |
+|---|---|---|
+| Appearance / mode on first body render | unset (flash) | stored Light + Simple |
+| Live backdrop-filter surfaces | 21 | 1 |
+| Idle infinite animations | 1 | 0 |
+| Stage backing store | 1800 × 1200, upscaled | 900 × 600 |
+| Scroll after toolbar resize, from 700 px | 0 | 700 |
+| Swipe over empty stage floor | 0 px | 123–133 px |
+| Media Session position pushes, 3 s playback | 305–345 | 0 |
+| DOM mutations per second while playing | ~600 | ~40 |
+| Layouts per second while playing | ~103 | ~5 |
+| Style recalculations per second while playing | ~103 | ~19 |
+| Script time per second while playing | ~95 ms | ~39 ms |
+| Main-thread task time per second while playing | ~673 ms | ~188 ms |
+| Scroll frame time p95 / max | 10–17 / 10–42 ms | 9–10 / 9–11 ms |
+
+Values are medians or ranges from three interleaved runs of the same test against the previous release and this one. Headless Chromium composites in software, so it does not reproduce a phone GPU's backdrop-blur cost; the surface count is the proxy for that. Frame rates on a physical phone depend on the device and browser.
+
 ## Sound controls and balance
 
 - **L/R/M:** choose the recording's left channel, right channel, or both. M plays two virtual channels around the cabinet; it is not an automatic loudness matcher.
-- **Bands:** Full, Bass (300 Hz low-pass), Tweeter (2.5 kHz high-pass), Vocal (1.2 kHz band-pass), Bright (5 kHz high-pass). Subwoofers are low-passed at 120 Hz. These overlap; this is not a calibrated loudspeaker crossover.
+- **Bands:** Full, Bass (300 Hz low-pass), Tweeter (2.5 kHz high-pass), Vocal (1.2 kHz band-pass), Bright (5 kHz high-pass). Subwoofers are low-passed at 120 Hz. Every low-pass and high-pass section is Butterworth (maximally flat). These overlap; this is not a calibrated loudspeaker crossover.
 - **Width:** 1 preserves the channel feed, 0 adds mono crossfeed, and values above 1 add opposite-polarity crossfeed. Crossfeed is gain-bounded for more useful level comparisons, but correlated material can still cancel or change level.
 - **Balance / trims:** output adjustment, not automatic acoustic calibration. Start at Balance 0 and both trims 1.
 - **Test tone:** choose the same 80 Hz bass, 1 kHz mid, or 6 kHz treble tone and compare Test L with Test R. Quiet diagnostic tones bypass the room, EQ, and trims; they do not measure your hearing or headphones.
@@ -53,6 +82,7 @@ The shell follows Apple's iOS 27 design language, built from the WWDC26 material
 The changes are based on the following DSP principles:
 
 - The [Web Audio specification](https://webaudio.github.io/web-audio-api/#BiquadFilterNode) defines an all-pass biquad as magnitude-preserving but phase-changing, so it is no longer used as the Full-band bypass. The [Audio EQ Cookbook](https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html) shows why a 0 dB peaking EQ reduces to a unity transfer path.
+- The same specification defines low-pass and high-pass `Q` in decibels, so the common value 0.707 actually means a linear Q of about 1.085 and a +1.75 dB resonance at the corner. Crossover, air, obstruction, reverb-tone, and head-shadow filters now use −3.01 dB (linear 1/√2, Butterworth), so no filter boosts the band it is supposed to roll off.
 - A [WaveShaperNode is a nonlinear distortion processor](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createWaveShaper), so normal audio now sees a linear transfer curve. Clarity uses deterministic gain headroom and bypasses dynamics processing entirely; Room and Immersive retain a post-EQ [DynamicsCompressorNode](https://developer.mozilla.org/en-US/docs/Web/API/DynamicsCompressorNode) only as emergency protection.
 - Multiple delayed copies produce comb-filter-shaped linear distortion; this is documented in [AES research on audible comb filtering](https://www2.ak.tu-berlin.de/~akgroup/ak_pub/2007/Brunner%20Maempel%20Weinzierl%202007_On%20the%20audibility%20of%20comb%20filter%20distortions%20AES.pdf). Clarity therefore disables reflections, while Room and Immersive use reduced mode-dependent reflection gains.
 - Room distance still depends on direct versus reverberant energy and interaural coherence, as summarized by the [Acoustical Society of America](https://acoustics.org/pressroom/httpdocs/160th/lavandier.html); those cues remain available in the spatial modes rather than contaminating the clean default.
@@ -78,14 +108,14 @@ Each speaker reads the mix or a cached stem:
 AudioBuffer source -> band filter -> channel split / width
  -> speaker gain + mute -> air/sub low-pass
     -> obstruction low-pass -> distance gain -> delay -> spatializer
-    -> first-order wall reflections and synthetic late reverb
- -> master -> output pan -> per-ear trims -> optional headphone EQ with preamp
+    -> first-order wall reflections (when enabled) and synthetic late reverb (only when audible)
+ -> master (volume × automatic headroom) -> output pan -> per-ear trims -> optional headphone EQ with preamp
  -> optional spatial-mode emergency limiter -> linear −1 dBFS sample ceiling -> stereo output/meters
 ```
 
 Six mirrored image sources approximate first-order wall reflections. The late reverb uses a synthetic decaying-noise impulse. Softness and estimated furnishing area shorten/darken the tail. A segment/box intersection test detects blocked source-listener paths and applies a heuristic 1.8 kHz low-pass to direct sound, leaving the room send separate.
 
-The 3D-style view is an oblique projection drawn on a 2D canvas, not a scanned 3D room. A fixed 900 × 600 logical drawing surface is copied to a device-pixel-ratio-aware display buffer, keeping the editor sharp on HiDPI screens without changing hit-testing coordinates. It repaints in Light or Dark with the rest of the app. Speaker cabinets are drawn as their real driver layouts: two-way boxes (dome tweeter over a woofer, reflex port, badge), horn tweeters, and subwoofers (large driver, port slot, feet); the colored ring still identifies the type/band. The listener is drawn as a cartoon person whose green cone and nose point where they face. Cabinets are drawn about 1.3× true size so they stay legible in a 10 m room, and hit-testing shares those dimensions. Furniture picking follows the visible projected faces; dragging preserves the initial grab offset.
+The 3D-style view is an oblique projection drawn on a 2D canvas, not a scanned 3D room. All drawing and hit-testing use a fixed 900 × 600 logical space; a canvas transform renders it directly into a backing store sized to the displayed canvas (1×, 1.5×, or 2×), so large HiDPI screens get a sharp native render and phones avoid wasted pixels. It repaints in Light or Dark with the rest of the app. Speaker cabinets are drawn as their real driver layouts: two-way boxes (dome tweeter over a woofer, reflex port, badge), horn tweeters, and subwoofers (large driver, port slot, feet); the colored ring still identifies the type/band. The listener is drawn as a cartoon person whose green cone and nose point where they face. Cabinets are drawn about 1.3× true size so they stay legible in a 10 m room, and hit-testing shares those dimensions. Furniture picking follows the visible projected faces; dragging preserves the initial grab offset.
 
 ## Headphones and tracking
 
@@ -150,11 +180,12 @@ npm run test:visual
 npm run test:glass
 npm run test:demos
 npm run test:stems
+npm run test:mobile
 ```
 
 CI installs Playwright Chromium and runs the same suite. Tests cover server isolation/security headers and ranges, centered audio symmetry, dry passband and limiter quality, responsive interaction and accessibility sizing, player metadata/transport/mini-player, project persistence, all seven demo bundles with on-demand stems, legacy IndexedDB stem compatibility, and the corrected stem runtime module path.
 
-`test.cjs` renders actual Web Audio through Chrome's OfflineAudioContext and checks centered bass/treble symmetry with reflections in both Room and Immersive renderers. `test-quality.cjs` renders the real playback graph and asserts a flat dry passband, level linearity, negligible alias energy under extreme gain, and program safety on both Clarity two-box and Immersive nine-box rigs. `test-fidelity.cjs` independently measures THD, L/R crosstalk, automatic coherent-sum headroom, limiter behavior, and the −1 dBFS emergency ceiling. Output level is position-dependent and intentionally leaves headroom; use Master or system volume rather than increasing every speaker gain. `test-ui.cjs` checks the iOS 27 shell: a clean first view (at most two category groups open), tab-bar reachability, opening categories to reach controls, 44pt hit targets, preset wiring, furniture dragging with mouse and real touch, the Liquid Glass slider, Light and Dark appearances, and overflow at 320/390/768/1280. These tests do not verify perceived realism on a physical headset. No lint/typecheck command is configured.
+`test.cjs` renders actual Web Audio through Chrome's OfflineAudioContext and checks centered bass/treble symmetry with reflections in both Room and Immersive renderers. `test-quality.cjs` renders the real playback graph and asserts a flat dry passband, level linearity, negligible alias energy under extreme gain, and program safety on both Clarity two-box and Immersive nine-box rigs. `test-fidelity.cjs` independently measures THD, L/R crosstalk, automatic coherent-sum headroom, limiter behavior, and the −1 dBFS emergency ceiling. Output level is position-dependent and intentionally leaves headroom; use Master or system volume rather than increasing every speaker gain. `test-ui.cjs` checks the iOS 27 shell: a clean first view (at most two category groups open), tab-bar reachability, opening categories to reach controls, 44pt hit targets, preset wiring, furniture dragging with mouse and real touch, the Liquid Glass slider, Light and Dark appearances, and overflow at 320/390/768/1280. `test-mobile-performance.cjs` emulates a phone with 4× CPU throttling and asserts the first-paint appearance, backdrop-filter count, idle animations, canvas backing size, stage touch scrolling versus dragging, scroll stability across toolbar resizes, artwork stability across play/pause, Media Session update frequency, and DOM mutation and layout rates during playback. These tests do not verify perceived realism on a physical headset. No lint/typecheck command is configured.
 
 ## Hosting and limitations
 

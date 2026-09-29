@@ -379,3 +379,68 @@ body{background-color:#05070c}
 #headroomState[data-state=attenuating]{color:var(--blue)}
 #headroomState[data-state=limiting]{color:var(--orange);font-weight:650}
 @media(max-width:600px){.player-badges{gap:5px}.player-badges .source-pill{font-size:10px;padding-inline:8px}#headroomState{flex:1 0 100%;min-width:0;text-align:left;margin-left:0}}
+
+/* ---- Rendering performance ------------------------------------------------------------------
+   Cards float over a static, smooth light field, so re-sampling and blurring it for every pane is
+   visually redundant but forces the GPU to recomposite each translucent surface on every scroll
+   frame. The light field is one static fixed layer; only true overlays sample the backdrop. */
+body{background:#05070c;background-attachment:scroll}
+:root[data-appearance=light] body{background:#edf2f8;background-attachment:scroll}
+body::before{inset:0;opacity:1;filter:none;animation:none;transform:none;background:
+ radial-gradient(38% 32% at 16% 10%,rgba(10,132,255,.34),transparent 70%),
+ radial-gradient(42% 36% at 84% 6%,rgba(191,90,242,.26),transparent 70%),
+ radial-gradient(50% 42% at 72% 92%,rgba(48,209,88,.17),transparent 70%),
+ radial-gradient(42% 38% at 8% 88%,rgba(255,55,95,.15),transparent 70%),
+ radial-gradient(70% 55% at -8% -6%,rgba(10,132,255,.2),transparent 70%),
+ radial-gradient(62% 50% at 108% 3%,rgba(191,90,242,.17),transparent 72%),
+ radial-gradient(68% 58% at 74% 108%,rgba(48,209,88,.1),transparent 74%),
+ linear-gradient(145deg,#05070c 0%,#090b12 48%,#05080b 100%)}
+:root[data-appearance=light] body::before{opacity:1;background:
+ radial-gradient(38% 32% at 16% 10%,rgba(10,132,255,.24),transparent 70%),
+ radial-gradient(42% 36% at 84% 6%,rgba(191,90,242,.18),transparent 70%),
+ radial-gradient(50% 42% at 72% 92%,rgba(48,209,88,.12),transparent 70%),
+ radial-gradient(42% 38% at 8% 88%,rgba(255,55,95,.1),transparent 70%),
+ radial-gradient(70% 58% at -8% -6%,rgba(10,132,255,.22),transparent 70%),
+ radial-gradient(60% 50% at 108% 2%,rgba(191,90,242,.18),transparent 72%),
+ radial-gradient(68% 58% at 70% 108%,rgba(48,209,88,.12),transparent 74%),
+ linear-gradient(145deg,#eaf1fb 0%,#f4f0fa 48%,#eaf5f2 100%)}
+body::after{content:none}
+/* Nested groups and controls already sit on a frosted pane; a second backdrop sample is invisible. */
+details.group{-webkit-backdrop-filter:none;backdrop-filter:none}
+button:not(#play):not(.tab),input:not([type=range]),select,.file-button{-webkit-backdrop-filter:none;backdrop-filter:none}
+/* Blur + saturation carries the material; the extra contrast() pass is dropped. */
+.sec,.welcome-dialog{-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(190%);backdrop-filter:blur(var(--glass-blur)) saturate(190%)}
+.topbar{-webkit-backdrop-filter:blur(calc(38px*var(--glass-blur-scale))) saturate(205%);backdrop-filter:blur(calc(38px*var(--glass-blur-scale))) saturate(205%)}
+.tabbar,.mini-player{-webkit-backdrop-filter:blur(calc(32px*var(--glass-blur-scale))) saturate(200%);backdrop-filter:blur(calc(32px*var(--glass-blur-scale))) saturate(200%)}
+/* Compositor-only motion: no per-frame box-shadow repaint while music plays. */
+@keyframes art-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.018)}}
+/* Phones: even a composited infinite animation keeps the main thread re-styling every frame while music
+   plays, so the playing state is a static glow ring instead of a breathing cover. */
+@media (max-width:899px),(pointer:coarse){
+ .now-playing[data-state=playing] .album-art{animation:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.38),0 0 0 2px rgba(48,209,88,.6),0 12px 28px rgba(48,209,88,.22)}
+ .now-playing[data-state=playing] .album-art span{animation:none}
+}
+/* Meters scale on the compositor instead of changing layout height. */
+.meters i{height:22px;min-height:0;transform-origin:50% 100%;transform:scaleY(.1);will-change:transform} /* own tiny layers: level changes skip paint and raster */
+/* Fixed-width status prevents the output row from reflowing when its text changes. */
+#headroomState{flex:0 0 12.5rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Vertical swipes over empty stage floor scroll the page; touches on objects still drag them. */
+canvas{touch-action:pan-y pinch-zoom}
+/* Simple mode can be applied on <html> before the body renders. */
+html[data-experience=simple] .advanced-only{display:none!important}
+/* Phones and tablets: cards are opaque-enough frosted panes without live blur; only the floating tab bar and
+   mini player (true overlays above moving content) still sample the backdrop, with a cheaper radius. */
+@media (max-width:899px){.topbar{position:relative;top:auto;-webkit-backdrop-filter:none;backdrop-filter:none}}
+@media (min-width:900px) and (pointer:coarse){.topbar{-webkit-backdrop-filter:blur(calc(18px*var(--glass-blur-scale))) saturate(170%);backdrop-filter:blur(calc(18px*var(--glass-blur-scale))) saturate(170%)}}
+@media (max-width:899px),(pointer:coarse){
+ .sec,.welcome-dialog{-webkit-backdrop-filter:none;backdrop-filter:none}
+ .tabbar,.mini-player{-webkit-backdrop-filter:blur(calc(18px*var(--glass-blur-scale))) saturate(170%);backdrop-filter:blur(calc(18px*var(--glass-blur-scale))) saturate(170%)}
+ .topbar,body.scrolled .topbar{--glass-opacity-scale:1;box-shadow:inset 0 1px 0 var(--glass-shine),inset 0 -1px 0 var(--glass-edge-low),0 10px 26px var(--glass-shadow-soft)}
+ .sec{box-shadow:inset 0 1px 0 var(--glass-shine),inset 0 -1px 0 var(--glass-edge-low),0 10px 26px var(--glass-shadow-soft)}
+ #playerSection{box-shadow:inset 0 1px 0 var(--glass-shine),inset 0 -1px 0 var(--glass-edge-low),0 12px 30px var(--glass-shadow-soft)}
+ details.group{box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -1px 0 var(--glass-edge-low)}
+ .welcome-dialog{background:rgba(var(--glass-rgb),.97)}
+ .welcome-dialog::backdrop{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(0,0,0,.62)}
+}
+@media(max-width:600px){#headroomState{flex:1 0 100%;text-align:left;margin-left:0}}
+@media(prefers-reduced-transparency:reduce){.glass,.sec,.topbar,details.group,.tabbar,.mini-player,.welcome-dialog{-webkit-backdrop-filter:none;backdrop-filter:none}}

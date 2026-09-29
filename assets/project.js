@@ -45,7 +45,7 @@ document.addEventListener('change',event=>{if(!event.target.closest('#panel-rig 
 for(const id of ['addSp','addTw','addSub','stage8','addBed','addSofa','addWardrobe'])$(id).addEventListener('click',queueHistory);
 c.addEventListener('pointerup',queueHistory);
 let experience='advanced';try{experience=localStorage.getItem('experience')||'advanced';}catch(_){}
-function applyExperience(){document.body.dataset.experience=experience;const simple=experience==='simple';$('modeToggle').setAttribute('aria-pressed',String(simple));$('modeToggle').textContent=simple?'Advanced mode':'Simple mode';}
+function applyExperience(){document.body.dataset.experience=experience;document.documentElement.dataset.experience=experience==='simple'?'simple':'advanced';const simple=experience==='simple';$('modeToggle').setAttribute('aria-pressed',String(simple));$('modeToggle').textContent=simple?'Advanced mode':'Simple mode';}
 $('modeToggle').onclick=()=>{experience=experience==='simple'?'advanced':'simple';try{localStorage.setItem('experience',experience);}catch(_){}applyExperience();};
 applyExperience();
 const welcomeDialog=$('welcomeDialog');

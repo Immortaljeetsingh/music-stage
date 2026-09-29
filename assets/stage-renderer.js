@@ -113,6 +113,7 @@ function drawPerson(p){ // a cartoon listener, not a dot: legs, torso, arms, hea
   x2.strokeStyle=p.shirt;x2.lineWidth=2.5;x2.stroke();
   x2.beginPath();x2.arc(head[0]+fx*S*0.72,head[1]+fy*S*0.72,S*0.08,0,7);x2.fillStyle=p.shirt;x2.fill();}
 function draw(){
+  x2.setTransform(CANVAS_SCALE,0,0,CANVAS_SCALE,0,0); // logical 900x600 drawing, rendered straight into the backing store
   x2.clearRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
   const p=pal(),S=S3(),v=0.5*S;
   const wall=(a,b2,cc,d)=>{x2.beginPath();x2.moveTo(...a);x2.lineTo(...b2);x2.lineTo(cc[0],cc[1]-0.9*S*room.h);x2.lineTo(d[0],d[1]-0.9*S*room.h);x2.closePath();
@@ -135,7 +136,6 @@ function draw(){
   });
   [...sps.keys()].sort((a,b2)=>sps[a].y-sps[b2].y).forEach(i=>drawCabinet(i,sps[i],p));
   drawPerson(p);
-  display2.setTransform(1,0,0,1,0,0);display2.clearRect(0,0,c.width,c.height);display2.imageSmoothingEnabled=true;display2.imageSmoothingQuality='high';display2.drawImage(renderCanvas,0,0,c.width,c.height);
 }
 let drag=null, moved=false;
 function evtPos(e){const r=c.getBoundingClientRect();
@@ -144,6 +144,7 @@ function pick(e){
   const r=c.getBoundingClientRect();
   const px=(e.clientX-r.left)*CANVAS_WIDTH/r.width,py=(e.clientY-r.top)*CANVAS_HEIGHT/r.height;
   let best=null,bd=Infinity;
+  x2.setTransform(CANVAS_SCALE,0,0,CANVAS_SCALE,0,0); // paths are logical; isPointInPath tests backing-store pixels
   sps.forEach((s,i)=>{const [sx,sy]=P3(s.x,s.y,s.h??EAR);
     const d=Math.hypot(sx-px,sy-0.45*S3()-py);
     if(Math.abs(sx-px)<Math.max(16,cabR(s)*S3()+6)&&Math.abs(sy-0.45*S3()-py)<Math.max(20,0.45*S3()+6)&&d<bd){bd=d;best={t:'s',i};}});
@@ -151,7 +152,7 @@ function pick(e){
     const o=furniture[i],corners=[[o.x,o.y],[o.x+o.w,o.y],[o.x+o.w,o.y+o.d],[o.x,o.y+o.d]];
     for(const [ids,zs] of [[[0,1,1,0],[0,0,o.h,o.h]],[[1,2,2,1],[0,0,o.h,o.h]],[[0,1,2,3],[o.h,o.h,o.h,o.h]]]){
       const path=new Path2D();ids.forEach((id,j)=>{const p=P3(...corners[id],zs[j]);if(j)path.lineTo(...p);else path.moveTo(...p);});path.closePath();
-      if(x2.isPointInPath(path,px,py))best={t:'f',i};
+      if(x2.isPointInPath(path,px*CANVAS_SCALE,py*CANVAS_SCALE))best={t:'f',i};
     }
   });
   const [lx,ly]=P3(listener.x,listener.y,1.62);
@@ -185,6 +186,13 @@ c.addEventListener('pointerup',e=>{
   if(drag?.t==='f')showFurniture();else if(drag?.t==='s')showSel();
   if(moved)draw();drag=null;});
 c.addEventListener('pointercancel',()=>{if(drag?.t==='f')showFurniture();drag=null;});
+// touch-action:pan-y lets a vertical swipe over empty floor scroll the page. A touch that lands on a speaker,
+// furniture or the listener cancels scrolling here (pointerdown has already picked it), so the drag stays put.
+for(const type of ['touchstart','touchmove'])c.addEventListener(type,e=>{
+  if(e.touches.length!==1||!e.cancelable)return;
+  const touch=e.touches[0];
+  if(drag||(type==='touchstart'&&pick({clientX:touch.clientX,clientY:touch.clientY})))e.preventDefault();
+},{passive:false});
 window.addEventListener('keydown',e=>{
   const t=(e.target&&e.target.tagName)||'',interactive=e.target?.closest?.('button,a,summary,[role=tab]');
   if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA'||interactive)return; // never move the room while operating another control

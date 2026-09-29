@@ -2,16 +2,21 @@
 const tabButtons=[...document.querySelectorAll('.tabbar [role=tab]')];
 const panelByTab=Object.fromEntries(tabButtons.map(tab=>[tab.dataset.tab,$(tab.getAttribute('aria-controls'))]));
 const originalGoTab=goTab;
+function syncPanelVisibility(){ // phones show one panel at a time; desktop exposes all of them
+  const mobile=innerWidth<900,current=document.body.dataset.tab||'stage';
+  for(const tab of tabButtons){const panel=panelByTab[tab.dataset.tab],hidden=String(mobile&&tab.dataset.tab!==current);if(panel&&panel.getAttribute('aria-hidden')!==hidden)panel.setAttribute('aria-hidden',hidden);}
+}
 goTab=function(name,{focus=false}={}){
-  originalGoTab(name);const mobile=innerWidth<900;
-  for(const tab of tabButtons){const selected=tab.dataset.tab===name;tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;const panel=panelByTab[tab.dataset.tab];if(panel)panel.setAttribute('aria-hidden',String(mobile&&!selected));}
+  originalGoTab(name); // selection state and the scroll reset live there
+  for(const tab of tabButtons){const index=tab.dataset.tab===name?0:-1;if(tab.tabIndex!==index)tab.tabIndex=index;}
+  syncPanelVisibility();
   if(focus)tabButtons.find(tab=>tab.dataset.tab===name)?.focus();syncStageDescription();
 };
 function moveTabFocus(current,delta){const index=tabButtons.indexOf(current),next=delta==='first'?0:delta==='last'?tabButtons.length-1:(index+delta+tabButtons.length)%tabButtons.length;goTab(tabButtons[next].dataset.tab,{focus:true});}
 document.querySelector('.tabbar').addEventListener('keydown',event=>{const tab=event.target.closest('[role=tab]');if(!tab)return;if(event.key==='ArrowRight'||event.key==='ArrowDown'){event.preventDefault();event.stopImmediatePropagation();moveTabFocus(tab,1);}else if(event.key==='ArrowLeft'||event.key==='ArrowUp'){event.preventDefault();event.stopImmediatePropagation();moveTabFocus(tab,-1);}else if(event.key==='Home'){event.preventDefault();moveTabFocus(tab,'first');}else if(event.key==='End'){event.preventDefault();moveTabFocus(tab,'last');}});
 function syncStageDescription(){
   const selected=sps[selIdx],objects=furniture.length?`${furniture.length} furniture object${furniture.length===1?'':'s'}`:'no furniture';
-  $('stageState').textContent=`${sps.length} speaker${sps.length===1?'':'s'}, ${objects}. Listener at ${listener.x.toFixed(1)}, ${listener.y.toFixed(1)} metres in a ${room.w} by ${room.l} by ${room.h} metre room.${selected?` Selected ${selected.sub?'subwoofer':'speaker '+(selIdx+1)} at ${selected.x.toFixed(1)}, ${selected.y.toFixed(1)} metres.`:''}`;
+  setText('stageState',`${sps.length} speaker${sps.length===1?'':'s'}, ${objects}. Listener at ${listener.x.toFixed(1)}, ${listener.y.toFixed(1)} metres in a ${room.w} by ${room.l} by ${room.h} metre room.${selected?` Selected ${selected.sub?'subwoofer':'speaker '+(selIdx+1)} at ${selected.x.toFixed(1)}, ${selected.y.toFixed(1)} metres.`:''}`); // polite live region: speak only real changes
 }
 function labelGeneratedControls(){
   const ranges=$('sel').querySelectorAll('input[type=range]'),selects=$('sel').querySelectorAll('select');
@@ -39,7 +44,10 @@ $('uni').addEventListener('change',()=>{if($('uni').checked){listener.useSensor=
 const themeColor=document.querySelector('meta[name=theme-color]');
 function syncThemeColor(){themeColor.content=document.documentElement.dataset.appearance==='light'?'#f2f2f7':'#0a0a0c';}
 new MutationObserver(syncThemeColor).observe(document.documentElement,{attributes:true,attributeFilter:['data-appearance']});
-window.addEventListener('resize',()=>goTab(document.body.dataset.tab||'stage'));
+// Mobile toolbars change the viewport height while scrolling; that must not reset the tab or the scroll
+// position. Only a width change (rotation, window resize) can alter the layout.
+let resizeFrame=0,lastViewportWidth=innerWidth;
+window.addEventListener('resize',()=>{if(resizeFrame)return;resizeFrame=requestAnimationFrame(()=>{resizeFrame=0;if(innerWidth===lastViewportWidth)return;lastViewportWidth=innerWidth;syncPanelVisibility();resizeStageCanvas();});});
 window.addEventListener('unhandledrejection',event=>{const message=event.reason?.message;if(message)say(`Operation failed: ${message}`);});
 window.addEventListener('pagehide',()=>{audioLoadController?.abort();pendingStemController?.abort();catalogController?.abort();});
 goTab('stage');syncThemeColor();syncStageDescription();

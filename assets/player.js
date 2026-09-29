@@ -3,20 +3,25 @@ let currentTrack={title:'Choose a track',artist:'Upload audio, load a demo, or b
 let audioLoadController=null,audioLoadGeneration=0,pendingDemo=null,pendingStemController=null;
 let repeatEnabled=true,lastAudibleVolume=0.9,playbackGeneration=0,transportFrame=0;
 
+// Every surface write below is guarded: play, pause and seek change only what actually differs, so the
+// artwork is never re-decoded and the card never re-lays out for identical text.
 function setLoadState(state,message='',progress=null){
   const pill=$('playerState'),bar=$('loadProgress'),cancel=$('cancelLoad');
-  pill.dataset.state=state;pill.textContent={empty:'No track',loading:'Loading',ready:'Ready',playing:'Playing',paused:'Paused',error:'Error'}[state]||state;
+  if(pill.dataset.state!==state)pill.dataset.state=state;setText(pill,{empty:'No track',loading:'Loading',ready:'Ready',playing:'Playing',paused:'Paused',error:'Error'}[state]||state);
   if(message)say(message);
-  if(progress==null){bar.hidden=true;bar.removeAttribute('value');}else{bar.hidden=false;bar.value=Math.max(0,Math.min(1,progress));}
-  cancel.hidden=state!=='loading';currentTrack.state=state;updatePlayerSurface();
+  if(progress==null){if(!bar.hidden)bar.hidden=true;if(bar.hasAttribute('value'))bar.removeAttribute('value');}
+  else{if(bar.hidden)bar.hidden=false;const value=Math.max(0,Math.min(1,progress));if(!bar.hasAttribute('value')||bar.value!==value)bar.value=value;}
+  const hideCancel=state!=='loading';if(cancel.hidden!==hideCancel)cancel.hidden=hideCancel;currentTrack.state=state;updatePlayerSurface();
 }
+let lastSurfaceArt='';
 function updatePlayerSurface(){
-  const art=currentTrack.artwork||MediaUtils.artworkData(currentTrack.title,currentTrack.artist),hasTrack=!['empty'].includes(currentTrack.state)&&currentTrack.title!=='Choose a track';
-  $('trackTitle').textContent=currentTrack.title;$('trackArtist').textContent=currentTrack.artist||'Unknown artist';$('trackAlbum').textContent=currentTrack.album||'';$('trackSource').textContent=currentTrack.source||'Audio';$('trackDetails').textContent=currentTrack.details||'';
-  $('miniTitle').textContent=currentTrack.title;$('miniArtist').textContent=currentTrack.artist||'Unknown artist';
-  for(const el of [$('albumArt'),$('miniArt')])el.style.backgroundImage=`url("${art.replaceAll('"','%22')}")`;
-  $('albumArt').setAttribute('aria-label',`Artwork for ${currentTrack.title}`);$('albumArt').querySelector('span').hidden=!!art;
-  document.body.classList.toggle('has-track',hasTrack);$('miniPlayer').hidden=!hasTrack;$('nowPlaying').dataset.state=currentTrack.state;
+  const art=currentTrack.artwork||MediaUtils.artworkData(currentTrack.title,currentTrack.artist),hasTrack=currentTrack.state!=='empty'&&currentTrack.title!=='Choose a track',artist=currentTrack.artist||'Unknown artist';
+  setText('trackTitle',currentTrack.title);setText('trackArtist',artist);setText('trackAlbum',currentTrack.album||'');setText('trackSource',currentTrack.source||'Audio');setText('trackDetails',currentTrack.details||'');
+  setText('miniTitle',currentTrack.title);setText('miniArtist',artist);
+  if(art!==lastSurfaceArt){lastSurfaceArt=art;const image=`url("${art.replaceAll('"','%22')}")`;for(const el of [$('albumArt'),$('miniArt')])el.style.backgroundImage=image;$('albumArt').querySelector('span').hidden=!!art;}
+  const label=`Artwork for ${currentTrack.title}`;if($('albumArt').getAttribute('aria-label')!==label)$('albumArt').setAttribute('aria-label',label);
+  document.body.classList.toggle('has-track',hasTrack);if($('miniPlayer').hidden===hasTrack)$('miniPlayer').hidden=!hasTrack;
+  if($('nowPlaying').dataset.state!==currentTrack.state)$('nowPlaying').dataset.state=currentTrack.state;
 }
 function setTrackMetadata(meta){
   if(currentTrack.artwork?.startsWith('blob:')&&currentTrack.artwork!==meta.artwork)URL.revokeObjectURL(currentTrack.artwork);
@@ -29,11 +34,14 @@ function setTrackMetadata(meta){
 }
 function beginAudioLoad(message){
   audioLoadController?.abort();pendingStemController?.abort();demoGen++;audioLoadController=new AbortController();const generation=++audioLoadGeneration;
-  pendingDemo=null;demoStemsBusy=null;setLoadState('loading',message,0);return {controller:audioLoadController,generation};
+  pendingDemo=null;demoStemsBusy=null;lastLoadProgressAt=-Infinity;setLoadState('loading',message,0);return {controller:audioLoadController,generation};
 }
 function finishAudioLoad(generation){if(generation!==audioLoadGeneration)return false;audioLoadController=null;$('cancelLoad').hidden=true;$('loadProgress').hidden=true;return true;}
-function loadProgress(loaded,total,label='Downloading'){const ratio=total?loaded/total:null;setLoadState('loading',`${label}… ${MediaUtils.formatBytes(loaded)}${total?' / '+MediaUtils.formatBytes(total):''}`,ratio);}
-function ensureAudioContext(){const C=window.AudioContext||window.webkitAudioContext;if(!C)throw new Error('This browser does not provide Web Audio.');AC=AC||new C();return AC;}
+let lastLoadProgressAt=-Infinity;
+function loadProgress(loaded,total,label='Downloading'){ // network chunks arrive far faster than anyone can read: 5 updates/s
+  const now=performance.now();if(now-lastLoadProgressAt<200&&!(total&&loaded>=total))return;lastLoadProgressAt=now;
+  const ratio=total?loaded/total:null;setLoadState('loading',`${label}… ${MediaUtils.formatBytes(loaded)}${total?' / '+MediaUtils.formatBytes(total):''}`,ratio);}
+function ensureAudioContext(){AC=AC||MediaUtils.createAudioContext();return AC;}
 async function decodeAudioBuffer(arrayBuffer){const context=ensureAudioContext();const decoded=await context.decodeAudioData(arrayBuffer);if(!decoded.duration||decoded.duration>MediaUtils.MAX_AUDIO_SECONDS)throw new Error(`Track duration must be between 1 second and ${MediaUtils.MAX_AUDIO_SECONDS/3600} hours.`);return decoded;}
 function adoptMix(decoded,meta){
   stopPbSafe();clearStems();buf=decoded;srcMono=decoded.numberOfChannels<2;playOffset=0;$('seek').value=0;updTime();
@@ -134,16 +142,40 @@ async function updateStorageUsage(){if(!$('storageUsage'))return;try{const estim
 $('clearStems').onclick=async()=>{try{if(playing.length)stopPb();const db=await openStageDatabase();await new Promise((resolve,reject)=>{const transaction=db.transaction(['stems','meta'],'readwrite');transaction.objectStore('stems').delete('set1');transaction.objectStore('meta').delete('schema');transaction.oncomplete=resolve;transaction.onerror=()=>reject(transaction.error);});db.close();clearStems();if(!buf){currentTrack={title:'Choose a track',artist:'Upload audio, load a demo, or browse free music',album:'',source:'Local-first',details:'Cached stems cleared.',artwork:'',state:'empty'};setLoadState('empty','Cached stems cleared.');}else say('Cached stems cleared.');updateStorageUsage();}catch(error){say(`Could not clear stems: ${error.message||error}`);}};
 
 const originalStartPb=startPb,originalStopPb=stopPb,originalSeekTo=seekTo;
-startPb=function(offset){originalStartPb(offset);const generation=++playbackGeneration;for(const source of playing){source.loop=repeatEnabled;if(!repeatEnabled)source.onended=()=>{if(generation!==playbackGeneration||!playing.includes(source))return;stopPb();playOffset=0;updTime();setLoadState('ready');};}setLoadState('playing');$('play').textContent='Pause';$('play').setAttribute('aria-label','Pause');$('miniPlay').textContent='Pause';$('miniPlay').setAttribute('aria-label','Pause');startTransportLoop();if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';};
-stopPb=function(){playbackGeneration++;originalStopPb();cancelAnimationFrame(transportFrame);$('play').textContent='Play';$('play').setAttribute('aria-label','Play');$('miniPlay').textContent='Play';$('miniPlay').setAttribute('aria-label','Play');if(currentTrack.state!=='empty')setLoadState('paused');if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';};
-seekTo=function(value){const duration=dur();if(!duration)return;const target=repeatEnabled?value:Math.max(0,Math.min(duration-0.001,value));originalSeekTo(target);refreshPlayerPosition();};
+function setTransportButtons(isPlaying){const label=isPlaying?'Pause':'Play';for(const id of ['play','miniPlay']){const button=$(id);setText(button,label);if(button.getAttribute('aria-label')!==label)button.setAttribute('aria-label',label);}}
+startPb=function(offset){originalStartPb(offset);const generation=++playbackGeneration;for(const source of playing){source.loop=repeatEnabled;if(!repeatEnabled)source.onended=()=>{if(generation!==playbackGeneration||!playing.includes(source))return;stopPb();playOffset=0;updTime();setLoadState('ready');};}setLoadState('playing');setTransportButtons(true);startTransportLoop();if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';updateMediaPosition();};
+stopPb=function(){playbackGeneration++;originalStopPb();clearTimeout(transportFrame);setTransportButtons(false);if(currentTrack.state!=='empty')setLoadState('paused');if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';updateMediaPosition();};
+seekTo=function(value){const duration=dur();if(!duration)return;const target=repeatEnabled?value:Math.max(0,Math.min(duration-0.001,value));originalSeekTo(target);refreshPlayerPosition({force:true,media:true});};
 togglePlay=async function(){try{ensureAudioContext();await AC.resume();if(playing.length){stopPb();return;}if(!buf&&!Object.keys(stemBufs).length){setLoadState('error','Choose an audio file or demo before pressing Play.');return;}startPb(playOffset||0);}catch(error){setLoadState('error',`Playback failed: ${error.message||error}`);}};
 $('play').onclick=togglePlay;$('miniPlay').onclick=togglePlay;$('miniStage').onclick=()=>goTab('stage');
-$('stop').onclick=()=>{if(playing.length)stopPb();playOffset=0;$('seek').value=0;refreshPlayerPosition();if(currentTrack.state!=='empty')setLoadState('ready','Stopped.');};
+$('stop').onclick=()=>{if(playing.length)stopPb();playOffset=0;$('seek').value=0;refreshPlayerPosition({force:true,media:true});if(currentTrack.state!=='empty')setLoadState('ready','Stopped.');};
 $('repeat').onclick=()=>{repeatEnabled=!repeatEnabled;$('repeat').setAttribute('aria-pressed',String(repeatEnabled));for(const source of playing)source.loop=repeatEnabled;say(repeatEnabled?'Repeat on.':'Repeat off.');};
 $('mute').onclick=()=>{const muting=$('mute').getAttribute('aria-pressed')!=='true';if(muting){lastAudibleVolume=+$('mvol').value||lastAudibleVolume;$('mvol').value=0;}else $('mvol').value=lastAudibleVolume;$('mvol').dispatchEvent(new Event('input',{bubbles:true}));$('mute').setAttribute('aria-pressed',String(muting));$('mute').textContent=muting?'Unmute':'Mute';};
 $('mvol').addEventListener('input',()=>{const value=+$('mvol').value;if(value>0){lastAudibleVolume=value;$('mute').setAttribute('aria-pressed','false');$('mute').textContent='Mute';}});
-function refreshPlayerPosition(){const duration=dur(),position=duration?curPos():0;$('elapsed').textContent=fmt(position);$('remaining').textContent='−'+fmt(Math.max(0,duration-position));$('time').textContent=`${fmt(position)} / ${fmt(duration)}`;$('seek').setAttribute('aria-valuetext',`${fmt(position)} of ${fmt(duration)}`);if(playing.length&&duration)$('seek').value=Math.round(position/duration*1000);updateOutputMeters();if('mediaSession' in navigator&&duration&&Number.isFinite(duration)){try{navigator.mediaSession.setPositionState({duration,playbackRate:1,position:Math.min(position,Math.max(0,duration-0.001))});}catch(_){}}}
-function startTransportLoop(){cancelAnimationFrame(transportFrame);const frame=()=>{refreshPlayerPosition();if(playing.length)transportFrame=requestAnimationFrame(frame);};transportFrame=requestAnimationFrame(frame);}
+// Transport UI budget while playing: clock text changes once per second, the seek thumb moves 5x/s (never
+// under the user's finger), meters run at ~30 Hz on the compositor, and the OS media clock is anchored only
+// on play, pause, seek, stop or a repeat wrap; it extrapolates from playbackRate on its own in between.
+let lastSeekWriteAt=-Infinity,lastMeterAt=-Infinity,lastTransportPosition=0,seekScrubbing=false,seekReleaseTimer=0;
+function refreshPlayerPosition({media=false,force=false}={}){
+  const duration=dur(),position=duration?curPos():0,now=performance.now(),elapsed=fmt(position),total=fmt(duration),seek=$('seek');
+  const wrapped=playing.length>0&&position+0.5<lastTransportPosition;lastTransportPosition=position;
+  setText('elapsed',elapsed);setText('remaining','−'+fmt(Math.max(0,duration-position)));setText('time',`${elapsed} / ${total}`);
+  const valueText=`${elapsed} of ${total}`;if(seek.getAttribute('aria-valuetext')!==valueText)seek.setAttribute('aria-valuetext',valueText);
+  if(playing.length&&duration&&!seekScrubbing&&(force||now-lastSeekWriteAt>=200)){lastSeekWriteAt=now;const value=String(Math.round(position/duration*1000));if(seek.value!==value)seek.value=value;}
+  if(force||now-lastMeterAt>=24){lastMeterAt=now;updateOutputMeters();}
+  if(media||wrapped)updateMediaPosition(position,duration);
+}
+function updateMediaPosition(position=curPos(),duration=dur()){
+  if(!('mediaSession' in navigator)||typeof navigator.mediaSession.setPositionState!=='function'||!duration||!Number.isFinite(duration))return;
+  try{navigator.mediaSession.setPositionState({duration,playbackRate:1,position:Math.min(Math.max(0,position),Math.max(0,duration-0.001))});}catch(_){}
+}
+// A 30 Hz timer rather than a per-vsync rAF loop: a 120 Hz phone would otherwise wake the main thread and
+// run a frame lifecycle 120 times a second just to move two meters.
+function startTransportLoop(){clearTimeout(transportFrame);const tick=()=>{refreshPlayerPosition();transportFrame=playing.length?setTimeout(tick,33):0;};transportFrame=setTimeout(tick,0);}
+// While the seek thumb is held, playback must not drag it back; release shortly after the seek lands.
+const holdSeek=()=>{seekScrubbing=true;clearTimeout(seekReleaseTimer);};
+const releaseSeek=()=>{clearTimeout(seekReleaseTimer);seekReleaseTimer=setTimeout(()=>{seekScrubbing=false;refreshPlayerPosition({force:true});},400);};
+for(const type of ['pointerdown','input'])$('seek').addEventListener(type,holdSeek);
+for(const type of ['change','pointerup','pointercancel','blur'])$('seek').addEventListener(type,releaseSeek);
 if('mediaSession' in navigator){for(const [action,handler] of [['play',togglePlay],['pause',togglePlay],['stop',$('stop').onclick],['seekbackward',details=>seekTo(curPos()-(details.seekOffset||10))],['seekforward',details=>seekTo(curPos()+(details.seekOffset||10))],['seekto',details=>seekTo(details.seekTime||0)]])try{navigator.mediaSession.setActionHandler(action,handler);}catch(_){};}
-updatePlayerSurface();updateStorageUsage();refreshPlayerPosition();
+updatePlayerSurface();updateStorageUsage();refreshPlayerPosition({force:true});

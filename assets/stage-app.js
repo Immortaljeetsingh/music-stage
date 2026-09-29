@@ -46,10 +46,18 @@ let room={w:10,l:10,h:10}; // generous default stage: big rooms are the point of
 let listener={x:3,y:4,yaw:0,pitch:0,off:0,poff:0,useSensor:false,sYaw:0,sPitch:0};
 let sps=[{x:2,y:2,h:1.6,v:1,sub:false,ch:'L',band:'Full'},{x:8,y:2,h:1.6,v:1,sub:false,ch:'R',band:'Full'}];
 let selIdx=0;
-const c=document.getElementById('c'),CANVAS_WIDTH=900,CANVAS_HEIGHT=600,CANVAS_SCALE=Math.max(1,Math.min(devicePixelRatio||1,2));
-c.width=Math.round(CANVAS_WIDTH*CANVAS_SCALE);c.height=Math.round(CANVAS_HEIGHT*CANVAS_SCALE);
-const display2=c.getContext('2d'),renderCanvas=document.createElement('canvas');renderCanvas.width=CANVAS_WIDTH;renderCanvas.height=CANVAS_HEIGHT;const x2=renderCanvas.getContext('2d');
+const c=document.getElementById('c'),CANVAS_WIDTH=900,CANVAS_HEIGHT=600;
+let CANVAS_SCALE=1; // backing-store pixels per logical stage pixel; drawing always uses the 900x600 space
+const x2=c.getContext('2d');
 const $=id=>document.getElementById(id);
+function setText(target,value){const el=typeof target==='string'?$(target):target;if(el&&el.textContent!==value)el.textContent=value;} // skip no-op DOM writes
+// Render at the resolution actually displayed. A phone shows the 900px stage at ~1000 device pixels, so a
+// larger backing store only adds fill cost; a large HiDPI canvas gets a true 1.5x/2x render instead of an upscale.
+function preferredCanvasScale(){const width=c.getBoundingClientRect().width;if(!width)return CANVAS_SCALE;
+  const needed=width*(window.devicePixelRatio||1)/CANVAS_WIDTH;return needed>1.35?Math.min(2,Math.ceil(needed*2)/2):1;}
+function resizeStageCanvas({redraw=true}={}){const scale=preferredCanvasScale(),width=Math.round(CANVAS_WIDTH*scale),height=Math.round(CANVAS_HEIGHT*scale);
+  if(scale===CANVAS_SCALE&&c.width===width&&c.height===height)return false; // resizing clears the canvas: only when needed
+  CANVAS_SCALE=scale;c.width=width;c.height=height;x2.setTransform(scale,0,0,scale,0,0);if(redraw&&typeof draw==='function')draw();return true;}
 
 for(const [id,key] of [['rw','w'],['rl','l'],['rh','h']])$(id).onchange=e=>{
   const input=e.target,v=input.valueAsNumber;room[key]=Number.isFinite(v)?Math.max(+input.min,Math.min(+input.max,v)):room[key];input.value=room[key];
@@ -89,7 +97,9 @@ $('stage8').onclick=()=>{ // 4 ear-level fulls + 4 ceiling tweeters + 1 floor su
     {x:w-0.5,y:l-0.5,h:Math.min(2.6,room.h-0.3),v:0.6,sub:false,ch:'R',band:'Tweeter'},
     {x:w/2,y:0.5,h:0.3,v:1.5,sub:true,ch:'M',band:'Full'},
   ];selIdx=0;if(playing.length)seekTo(curPos());showSel();draw();say('9-box rig placed');};
-$('roomAmt').oninput=e=>{if(wet)wet.gain.value=+e.target.value;$('preset').value='';};
+$('roomAmt').oninput=e=>{const amount=+e.target.value||0;$('preset').value='';
+  if(wet)wet.gain.setTargetAtTime(amount,AC.currentTime,0.03);
+  else if(amount>0&&playing.length)seekTo(curPos());}; // the convolver is built only once reverb becomes audible
 $('openStems').onclick=()=>location.href='stems.html';
 $('mapStems').onclick=async()=>{ // separated rig is opt-in: Demucs output is lossy vs the original mix
   if(demoStemsBusy){say('fetching stems…');await demoStemsBusy;demoStemsBusy=null;}
@@ -136,19 +146,22 @@ $('addBed').onclick=()=>addFurniture('Bed');$('addSofa').onclick=()=>addFurnitur
 $('hpdev').onchange=()=>{if(playing.length)seekTo(curPos());
   if($('hpdev').value==='pro3')say('AirPods Pro 3: no numerical correction verified here; EQ bypassed. Pro 2 correction is not interchangeable.');};
 function syncAudioSafe(){try{updateLis();}catch(e){}}
-$('mvol').oninput=e=>{if(master){updateLis();master.gain.setTargetAtTime(+e.target.value,AC.currentTime,0.02);}};
+$('mvol').oninput=()=>{if(master)updateLis();}; // updateLis ramps master = volume x headroom as one parameter: no overshoot while dragging
 function fmt(t){t=Math.max(0,Math.floor(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
 function dur(){if(buf)return buf.duration;const k=Object.keys(stemBufs)[0];return k?stemBufs[k].duration:0;}
 function curPos(){const D=dur();if(!D)return 0;if(!playing.length)return playOffset;return (playOffset+Math.max(0,AC.currentTime-playStart))%D;}
-const meterBuffers=[null,null];let lastHeadroomText='';
+const meterBuffers=[null,null],meterScales=[-1,-1];let lastHeadroomText='',lastHeadroomAt=-Infinity;
 function updateOutputMeters(){try{
   const bars=[$('mL'),$('mR')],analysers=[anL,anR];
-  for(let i=0;i<2;i++){let h=2,analyser=analysers[i];
-    if(playing.length&&analyser?.getByteTimeDomainData){let data=meterBuffers[i];if(!data||data.length!==analyser.fftSize)data=meterBuffers[i]=new Uint8Array(analyser.fftSize);analyser.getByteTimeDomainData(data);let sum=0;for(let j=0;j<data.length;j+=2){const v=(data[j]-128)/128;sum+=v*v;}h=2+Math.min(20,Math.sqrt(sum/(data.length/2))*60);}
-    if(bars[i])bars[i].style.height=h+'px';}
-  const status=$('headroomState');if(status){const reduction=playing.length&&Number.isFinite(comp?.reduction)?comp.reduction:0,attenuation=live.norm&&live.norm<0.995?-20*Math.log10(live.norm):0,text=reduction<-.1?`Limiter ${Math.abs(reduction).toFixed(1)} dB · protected`:attenuation>.1?`Auto headroom ${attenuation.toFixed(1)} dB`:'Clean path · auto headroom';if(text!==lastHeadroomText){lastHeadroomText=text;status.textContent=text;status.dataset.state=reduction<-.1?'limiting':attenuation>.1?'attenuating':'clean';}}
+  for(let i=0;i<2;i++){let level=0;const analyser=analysers[i];
+    if(playing.length&&analyser?.getByteTimeDomainData){let data=meterBuffers[i];if(!data||data.length!==analyser.fftSize)data=meterBuffers[i]=new Uint8Array(analyser.fftSize);analyser.getByteTimeDomainData(data);let sum=0;for(let j=0;j<data.length;j+=2){const v=(data[j]-128)/128;sum+=v*v;}level=Math.min(1,Math.sqrt(sum/(data.length/2))*3);}
+    // Compositor-only meter: scaleY of a fixed 22px bar (same 2-22px travel as before), quantized so a steady level writes nothing.
+    const scale=Math.round((0.0909+0.909*level)*40)/40;
+    if(bars[i]&&scale!==meterScales[i]){meterScales[i]=scale;bars[i].style.transform=`scaleY(${scale})`;}}
+  const status=$('headroomState'),now=performance.now();
+  if(status&&(!playing.length||now-lastHeadroomAt>=250)){lastHeadroomAt=now;const reduction=playing.length&&Number.isFinite(comp?.reduction)?comp.reduction:0,attenuation=live.norm&&live.norm<0.995?-20*Math.log10(live.norm):0,text=reduction<-.1?`Limiter ${Math.abs(reduction).toFixed(1)} dB · protected`:attenuation>.1?`Auto headroom ${attenuation.toFixed(1)} dB`:'Clean path · auto headroom';if(text!==lastHeadroomText){lastHeadroomText=text;status.textContent=text;status.dataset.state=reduction<-.1?'limiting':attenuation>.1?'attenuating':'clean';}}
 }catch(_) {}}
-function updTime(){const D=dur();if(!D){$('time').textContent='0:00 / 0:00';updateOutputMeters();return;}const position=curPos();$('time').textContent=fmt(position)+' / '+fmt(D);if(playing.length)$('seek').value=Math.round(position/D*1000);updateOutputMeters();}
+function updTime(){const D=dur();if(!D){setText('time','0:00 / 0:00');updateOutputMeters();return;}const position=curPos();setText('time',fmt(position)+' / '+fmt(D));if(playing.length){const value=String(Math.round(position/D*1000));if($('seek').value!==value)$('seek').value=value;}updateOutputMeters();}
 function seekTo(t){const D=dur();if(!D)return;t=((t%D)+D)%D;
   if(playing.length){stopPb();startPb(t);}else{playOffset=t;$('seek').value=Math.round(t/D*1000);updTime();}}
 $('seek').onchange=e=>{const D=dur();if(D)seekTo(e.target.value/1000*D);};
@@ -187,7 +200,7 @@ function applyPreset(name){const p=PRESETS[name];if(!p)return;
   say(name+': '+(name==='Clarity'?'direct stereo, ':'spatial room, ')+'reflections '+(p.walls?'on':'off')+', absorb '+p.abs+', verb '+p.verb+', '+p.furn.toLowerCase()+(p.air?', air dulls far':'')+'.');}
 $('preset').onchange=e=>applyPreset(e.target.value);
 function beep(side){
-  AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume();
+  ensureAudioContext();AC.resume();
   const o=AC.createOscillator(),g=AC.createGain(),p=AC.createStereoPanner();
   const t=AC.currentTime;o.frequency.value=+$('testFreq').value;p.pan.value=side==='L'?-1:1;
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.04,t+0.02);g.gain.setValueAtTime(0.04,t+0.35);g.gain.linearRampToValueAtTime(0,t+0.4);

@@ -65,7 +65,7 @@ const {launchBrowser}=require('./test-helpers.cjs');
         const session=await page.context().newCDPSession(page);
         for(const touch of [false,true]){
           await page.evaluate(()=>{furniture[0].x=0;furniture[0].y=0;showFurniture();draw();});
-          const pos=await page.evaluate(()=>{const r=c.getBoundingClientRect(),o=furniture[0],[x,y]=P3(o.x+o.w/2,o.y+o.d/2,o.h);return {x:r.left+x*r.width/c.width,y:r.top+y*r.height/c.height};});
+          const pos=await page.evaluate(()=>{const r=c.getBoundingClientRect(),o=furniture[0],[x,y]=P3(o.x+o.w/2,o.y+o.d/2,o.h);return {x:r.left+x*r.width/CANVAS_WIDTH,y:r.top+y*r.height/CANVAS_HEIGHT};});
           if(touch)await session.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{...pos,id:1}]});
           else{await page.mouse.move(pos.x,pos.y);await page.mouse.down();}
           assert.equal(await page.evaluate(()=>drag?.t),'f',type+' visible top selected');

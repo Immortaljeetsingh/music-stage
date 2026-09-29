@@ -50,7 +50,17 @@ var MediaUtils=(()=>{
     }
     return out;
   }
-  function artworkData(title='Music Stage',artist=''){
+  // 'playback' asks for a larger hardware buffer: phones trade a few ms of latency for glitch-free music.
+  function createAudioContext(){
+    const C=window.AudioContext||window.webkitAudioContext;if(!C)throw new Error('This browser does not provide Web Audio.');
+    try{return new C({latencyHint:'playback'});}catch{return new C();}
+  }
+  const artworkCache=new Map();
+  function artworkData(title='Music Stage',artist=''){ // memoized: an identical string keeps the decoded image cached
+    const key=`${title}\u0000${artist}`,cached=artworkCache.get(key);if(cached)return cached;
+    const value=buildArtwork(title,artist);if(artworkCache.size>=32)artworkCache.delete(artworkCache.keys().next().value);artworkCache.set(key,value);return value;
+  }
+  function buildArtwork(title,artist){
     const seed=[...`${title}${artist}`].reduce((n,ch)=>(n*31+ch.charCodeAt(0))>>>0,2166136261);
     const h1=seed%360,h2=(h1+55+(seed%90))%360;
     const initials=(title.match(/[\p{L}\p{N}]+/gu)||['♫']).slice(0,2).map(v=>v[0]).join('').toUpperCase();
@@ -70,5 +80,5 @@ var MediaUtils=(()=>{
     }catch(error){if(controller.signal.aborted&&error?.name==='AbortError')throw new Error(controller.signal.reason?.name==='TimeoutError'?'Download timed out.':'Loading cancelled.');throw error;}
     finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
   }
-  return {DEFAULT_TIMEOUT_MS,MAX_AUDIO_BYTES,MAX_AUDIO_SECONDS,artworkData,fetchBuffer,formatBytes,formatRate,httpUrl,parseId3,titleFromFilename};
+  return {DEFAULT_TIMEOUT_MS,MAX_AUDIO_BYTES,MAX_AUDIO_SECONDS,artworkData,createAudioContext,fetchBuffer,formatBytes,formatRate,httpUrl,parseId3,titleFromFilename};
 })();
