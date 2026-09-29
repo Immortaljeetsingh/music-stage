@@ -7,6 +7,7 @@ import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.projection.MediaProjection;
 import android.os.Process;
+import android.os.SystemClock;
 import io.github.immortaljeetsingh.musicstage.engine.StageConfig;
 import io.github.immortaljeetsingh.musicstage.engine.StageEngine;
 
@@ -27,6 +28,9 @@ final class AudioLoop extends Thread {
     private final MediaProjection projection;
     private final Listener listener;
     private volatile boolean running = true;
+    private volatile boolean outputEnabled;
+    private volatile long lastSignalMillis;
+    private volatile long lastOutputMillis;
     private AudioRecord record;
     private AudioTrack track;
 
@@ -35,6 +39,18 @@ final class AudioLoop extends Thread {
         this.projection = projection;
         this.listener = listener;
         engine = new StageEngine(SAMPLE_RATE, config);
+    }
+
+    long lastSignalMillis() {
+        return lastSignalMillis;
+    }
+
+    long lastOutputMillis() {
+        return lastOutputMillis;
+    }
+
+    void setOutputEnabled(boolean enabled) {
+        outputEnabled = enabled;
     }
 
     void shutdown() {
@@ -95,8 +111,18 @@ final class AudioLoop extends Thread {
                 if (read < 0) throw new IllegalStateException("Audio capture stopped (" + read + ").");
                 if (read < 2) continue;
                 int frames = read / 2;
+                boolean inputSilent = isSilent(in, frames * 2);
+                if (!inputSilent) lastSignalMillis = SystemClock.elapsedRealtime();
                 engine.process(in, out, frames);
-                silentBlocks = isSilent(in, frames * 2) ? silentBlocks + 1 : 0;
+                silentBlocks = inputSilent ? silentBlocks + 1 : 0;
+                if (!outputEnabled) {
+                    if (!paused) {
+                        track.pause();
+                        track.flush();
+                        paused = true;
+                    }
+                    continue;
+                }
                 if (silentBlocks > PAUSE_AFTER_SILENT_BLOCKS && isSilent(out, frames * 2)) {
                     if (!paused) {
                         track.pause();
@@ -109,7 +135,9 @@ final class AudioLoop extends Thread {
                     track.play();
                     paused = false;
                 }
-                track.write(out, 0, frames * 2, AudioTrack.WRITE_BLOCKING);
+                int written = track.write(out, 0, frames * 2, AudioTrack.WRITE_BLOCKING);
+                if (written != frames * 2) throw new IllegalStateException("Audio output stopped (" + written + ").");
+                lastOutputMillis = SystemClock.elapsedRealtime();
                 SystemStatus.underruns = track.getUnderrunCount();
             }
         } catch (RuntimeException e) {

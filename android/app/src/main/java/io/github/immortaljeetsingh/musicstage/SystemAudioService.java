@@ -108,7 +108,8 @@ public final class SystemAudioService extends Service {
             AudioLoop newLoop = new AudioLoop(projection, savedConfig(this), message -> main.post(() -> fail(message)));
             loop = newLoop;
             newLoop.start();
-            monitor = new SessionMonitor(this);
+            monitor = new SessionMonitor(this, newLoop::lastSignalMillis, newLoop::lastOutputMillis,
+                    newLoop::setOutputEnabled);
             monitor.start();
             SystemStatus.state = "running";
             SystemStatus.message = "";
@@ -144,12 +145,12 @@ public final class SystemAudioService extends Service {
 
     private void release() {
         if (instance == this) instance = null;
-        AudioLoop l = loop;
-        loop = null;
-        if (l != null) l.shutdown();
         SessionMonitor m = monitor;
         monitor = null;
         if (m != null) m.stop();
+        AudioLoop l = loop;
+        loop = null;
+        if (l != null) l.shutdown();
         MediaProjection p = projection;
         projection = null;
         if (p != null) {

@@ -7,6 +7,9 @@
     <string name="channel_name">System-wide sound</string>
     <string name="channel_description">Shown while other apps\' audio is processed through your stage.</string>
     <string name="status_no_session_access">Waiting for access to audio sessions. Finish the one-time setup.</string>
+    <string name="status_player_details">Waiting for reliable player details. Direct app audio stays on.</string>
+    <string name="status_multiple_apps">Multiple apps are playing. Direct app audio stays on for safety.</string>
+    <string name="status_checking_capture">Checking captured audio before switching this app to the stage.</string>
     <string name="error_projection">Android did not grant audio capture.</string>
     <string name="error_projection_declined">Capture was declined, so nothing changed.</string>
     <string name="error_foreground">Android refused to start the background service.</string>

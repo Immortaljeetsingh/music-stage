@@ -39,7 +39,7 @@
     put('systemSummary',summary);
     const notes=[];
     if(status.blocked&&status.blocked.length)notes.push(`Playing without processing (capture blocked): ${list(status.blocked)}.`);
-    if(status.unmuted&&status.unmuted.length)notes.push(`Couldn't silence the direct output of ${list(status.unmuted)}; another effect app may be active.`);
+    if(status.unmuted&&status.unmuted.length)notes.push(`Kept direct output on for ${list(status.unmuted)} because capture was silent or another effect app may be active.`);
     if(running&&status.latencyMs)notes.push(`Added delay about ${status.latencyMs} ms.`);
     put('systemApps',notes.join(' '));
   }

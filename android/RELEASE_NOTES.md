@@ -19,6 +19,8 @@ Then tap **Start**. Android asks for the audio-recording permission (the microph
 
 - Android 10 or newer.
 - Apps that block audio capture (for example Spotify, Chrome, SoundCloud and some video apps) keep playing normally without processing.
+- If Android incorrectly reports an app as capturable but sends no audio, Music Stage automatically restores that app's direct output.
+- If multiple media apps play simultaneously, their direct outputs stay on rather than risking silence from an ambiguous capture stream.
 - Processing adds roughly a tenth of a second of delay, so video lip-sync can drift slightly.
 - Other equalizer or effect apps can conflict with it.
 - On Android 15 and newer, enable **Disable screen share protections** in Developer options if the notification disappears while processing.
