@@ -127,6 +127,7 @@ npm run test:server
 npm run test:audio
 npm run test:ui
 npm run test:player
+npm run test:visual
 npm run test:demos
 npm run test:stems
 ```
