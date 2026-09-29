@@ -1,30 +1,25 @@
 const assert=require('node:assert/strict');
-const {pathToFileURL}=require('node:url');
-const path=require('node:path');
-const {spawn}=require('node:child_process');
-const {chromium}=require('playwright');
+const {createServer}=require('./server.cjs');
+const {closeServer,launchBrowser,listen}=require('./test-helpers.cjs');
+
 (async()=>{
-  const server=spawn('python',['-m','http.server','8933'],{cwd:__dirname,stdio:'ignore'});
-  await new Promise(r=>setTimeout(r,1500));
-  const browser=await chromium.launch(process.env.BROWSER_PATH?{executablePath:process.env.BROWSER_PATH}:{channel:'chrome'});
+  const server=createServer(),base=await listen(server);let browser;
   try{
-    const page=await browser.newPage();
-    const errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto('http://localhost:8933/index.html');
-    const r=await page.evaluate(async()=>{
-      AC=AC||new (window.AudioContext||window.webkitAudioContext)();
-      const N=4410,l=new Float32Array(N).fill(0.1),r2=new Float32Array(N).fill(0.1);
-      const db=await new Promise((res,rej)=>{const q=indexedDB.open('stage',1);
-        q.onupgradeneeded=()=>q.result.createObjectStore('stems');q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});
-      await new Promise((res,rej)=>{const t=db.transaction('stems','readwrite').objectStore('stems')
-        .put({name:'t',rate:44100,vocals:{l,r:r2},drums:{l,r:r2},bass:{l,r:r2},other:{l,r:r2}},'set1');
-        t.onsuccess=res;t.onerror=()=>rej(t.error);});
-      stemBufs={};stemNames=[];await loadStemsFromCache();
-      return {rate:AC.sampleRate,names:stemNames,dur:stemBufs.vocals?+stemBufs.vocals.duration.toFixed(3):0};
+    browser=await launchBrowser();
+    const page=await browser.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base+'/index.html');
+    const loaded=await page.evaluate(async()=>{
+      AC=AC||new (window.AudioContext||window.webkitAudioContext)();const N=4410,left=new Float32Array(N).fill(.1),right=new Float32Array(N).fill(.1);
+      const db=await new Promise((resolve,reject)=>{const request=indexedDB.open('stage',2);request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains('stems'))request.result.createObjectStore('stems');if(!request.result.objectStoreNames.contains('meta'))request.result.createObjectStore('meta');};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
+      await new Promise((resolve,reject)=>{const request=db.transaction('stems','readwrite').objectStore('stems').put({name:'Legacy test',rate:44100,vocals:{l:left,r:right},drums:{l:left,r:right},bass:{l:left,r:right},other:{l:left,r:right}},'set1');request.onsuccess=resolve;request.onerror=()=>reject(request.error);});db.close();stemBufs={};stemNames=[];await loadStemsFromCache();return {rate:AC.sampleRate,names:stemNames,duration:stemBufs.vocals?+stemBufs.vocals.duration.toFixed(3):0,title:currentTrack.title};
     });
-    assert.equal(r.names.length,4,'all four stems load at '+r.rate+'Hz');
-    assert(Math.abs(r.dur-0.1)<0.01,'duration preserved after resample: '+r.dur+'s');
-    assert.deepEqual(errors,[],'no browser errors');
-    console.log('PASS: cached 44.1k stems load with correct duration at '+r.rate+'Hz context.');
-  }finally{await browser.close();server.kill();}
-})().catch(e=>{console.error(e);process.exitCode=1;});
+    assert.equal(loaded.names.length,4,'all four legacy stems load');assert(Math.abs(loaded.duration-.1)<.01,'duration preserved across sample rates');assert.equal(loaded.title,'Legacy test');assert.deepEqual(errors,[]);
+
+    const stemPage=await browser.newPage();const stemErrors=[],requests=[];stemPage.on('pageerror',error=>stemErrors.push(error.message));stemPage.on('request',request=>requests.push(request.url()));
+    await stemPage.route('**/onnxruntime-web@1.20.0/dist/ort.bundle.min.mjs',route=>route.fulfill({contentType:'application/javascript',headers:{'Access-Control-Allow-Origin':'*'},body:'export const env={wasm:{}}; export class InferenceSession{}; export class Tensor{};'}));
+    await stemPage.route('**/demucs-web@1.0.2/src/index.js',route=>route.fulfill({contentType:'application/javascript',headers:{'Access-Control-Allow-Origin':'*'},body:"export class DemucsProcessor{}; export const CONSTANTS={DEFAULT_MODEL_URL:'https://example.invalid/model.onnx'};"}));
+    await stemPage.goto(base+'/stems.html');await stemPage.waitForFunction(()=>document.querySelector('#runtimeBadge').textContent!=='Runtime checking…');
+    assert(requests.some(url=>url.includes('/onnxruntime-web@1.20.0/dist/ort.bundle.min.mjs')),'correct ONNX module requested');assert.equal(await stemPage.locator('#bar').getAttribute('max'),'1');assert.equal(await stemPage.locator('#stat').getAttribute('aria-live'),'polite');assert(await stemPage.getByRole('button',{name:'Separate track'}).isDisabled());assert.deepEqual(stemErrors,[],'stem tool initializes without page errors');
+    console.log(`PASS: legacy ${loaded.rate}Hz stem cache loads with correct duration; hardened stem UI initializes.`);
+  }finally{if(browser)await browser.close();await closeServer(server);}
+})().catch(error=>{console.error(error);process.exitCode=1;});

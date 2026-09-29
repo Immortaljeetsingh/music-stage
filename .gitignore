@@ -8,5 +8,8 @@
 !demos/**/*.flac
 # tooling / OS
 node_modules/
+playwright-report/
+test-results/
+.coverage/
 .DS_Store
 Thumbs.db

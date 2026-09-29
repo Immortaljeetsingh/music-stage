@@ -1,99 +1,42 @@
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Stems — separate track</title>
-<style>
-*{box-sizing:border-box}
-body{font-family:system-ui;background:#0e1116;color:#e8ecf1;margin:0;padding:12px;max-width:760px;margin-inline:auto}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center;background:#161c25;border:1px solid #232c39;border-radius:10px;padding:10px 12px}
-button{background:#233043;color:#e8ecf1;border:1px solid #33445a;border-radius:8px;padding:10px 16px;cursor:pointer;min-height:44px;font-size:15px}
-button:hover{background:#2d3f57}
-button:disabled{opacity:.4}
-button#go{background:#14532d;border-color:#1f7a42;font-weight:700}
-#barWrap{background:#0e1319;border-radius:6px;height:14px;overflow:hidden;flex:1 1 100%}
-#bar{background:#38bdf8;height:100%;width:0%}
-#stat{color:#7dd3fc;font-size:13px}
-.stem{display:flex;gap:8px;align-items:center;justify-content:space-between;width:100%}
-a{color:#7dd3fc}
-.hint{font-size:12px;color:#8b98a9}
-</style>
-<h3>Stems — real vocal/drum/bass split (htdemucs, 100% in-browser)</h3>
-<div class="row">
-<input type=file id=f accept="audio/*">
-<button id=go disabled>Separate</button>
-<span id=stat>pick a track first (model ~172MB downloads once, cached)</span>
-<div id=barWrap><div id=bar></div></div>
-</div>
-<div class="row" id=stems></div>
-<div class="row">
-<button id=save disabled>Save to stage</button>
-<a href="index.html">← back to stage</a>
-<span class="hint">Tip: serve over localhost for 3-5× speed. file:// works, single-thread. First run downloads the model.</span>
-</div>
-<script type="importmap">{"imports":{
-"onnxruntime-web":"https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0/dist/ort.web.min.mjs",
-"demucs-web":"https://cdn.jsdelivr.net/npm/demucs-web@1.0.2/src/index.js"
-}}</script>
-<script type="module">
-import * as ort from 'onnxruntime-web';
-import {DemucsProcessor,CONSTANTS} from 'demucs-web';
-const $=id=>document.getElementById(id);
-const say=t=>$('stat').textContent=t;
-const bar=p=>$('bar').style.width=(p*100).toFixed(1)+'%';
-let fileBuf=null,fileName='',result=null,AC=null,playing=[];
-$('f').onchange=async e=>{
-  const f=e.target.files[0];if(!f)return;fileName=f.name;say('decoding…');
-  AC=AC||new (window.AudioContext||window.webkitAudioContext)();
-  const ab=await f.arrayBuffer();
-  const dec=await AC.decodeAudioData(ab);
-  // resample mix to 44100 stereo (model rate)
-  const off=new OfflineAudioContext(2,Math.ceil(dec.duration*44100),44100);
-  const src=off.createBufferSource();src.buffer=dec;src.connect(off.destination);src.start();
-  fileBuf=await off.startRendering();
-  say(fileName+' ready ('+fileBuf.duration.toFixed(0)+'s) — press Separate');$('go').disabled=false;
-};
-$('go').onclick=async()=>{
-  if(!fileBuf)return;$('go').disabled=true;
-  try{
-    say('loading runtime…');
-    ort.env.wasm.numThreads=(window.crossOriginIsolated?(navigator.hardwareConcurrency||4):1);
-    let webgpu=false;
-    if('gpu' in navigator){try{const a=await navigator.gpu.requestAdapter();if(a){webgpu=true;}}catch(e){}}
-    say('loading model (~172MB, once)…');
-    const smallScreen=Math.min(screen.width,screen.height)<700||!webgpu;
-    const proc=new DemucsProcessor({ort,
-      sessionOptions:smallScreen?{enableCpuMemArena:false,enableMemPattern:false}:{},
-      onProgress:({progress})=>{bar(progress);say('separating '+(progress*100).toFixed(0)+'%'+(webgpu?' (GPU)':' (CPU, ~3-5min/song)'));},
-      onDownloadProgress:(l,t)=>{bar(l/t);say('model '+((l/1048576).toFixed(0))+'/'+((t/1048576).toFixed(0))+'MB…');}});
-    await proc.loadModel(CONSTANTS.DEFAULT_MODEL_URL);
-    const t0=Date.now();
-    result=await proc.separate(fileBuf.getChannelData(0),fileBuf.getChannelData(1));
-    say('done in '+(((Date.now()-t0)/1000).toFixed(0))+'s — preview, then Save to stage');
-    bar(1);showStems();$('save').disabled=false;
-  }catch(e){say('failed: '+((e&&e.message)||e));$('go').disabled=false;}
-};
-function mkBuf(st){const b=AC.createBuffer(2,st.left.length,44100);
-  b.getChannelData(0).set(st.left);b.getChannelData(1).set(st.right);return b;}
-function showStems(){
-  $('stems').innerHTML='';
-  for(const k of['vocals','drums','bass','other']){
-    const d=document.createElement('div');d.className='stem';
-    const lb=document.createElement('span');lb.textContent=k;
-    const pb=document.createElement('button');pb.textContent='Play';
-    pb.onclick=async()=>{await AC.resume();stopPrev();
-      const s=AC.createBufferSource();s.buffer=mkBuf(result[k]);s.connect(AC.destination);s.start();playing.push(s);};
-    const sb=document.createElement('button');sb.textContent='Stop';sb.onclick=stopPrev;
-    d.append(lb,pb,sb);$('stems').append(d);
-  }
-}
-function stopPrev(){playing.forEach(s=>{try{s.stop()}catch(e){}});playing=[];}
-$('save').onclick=async()=>{
-  if(!result)return;say('saving…');
-  const rec={name:fileName,rate:44100};
-  for(const k of['vocals','drums','bass','other'])rec[k]={l:result[k].left,r:result[k].right};
-  const db=await new Promise((res,rej)=>{const r=indexedDB.open('stage',1);
-    r.onupgradeneeded=()=>r.result.createObjectStore('stems');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
-  await new Promise((res,rej)=>{const t=db.transaction('stems','readwrite').objectStore('stems').put(rec,'set1');
-    t.onsuccess=res;t.onerror=()=>rej(t.error);});
-  say('saved — open the stage, it loads these automatically');};
-</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<meta name="description" content="Separate vocals, drums, bass and other instruments locally in your browser.">
+<title>Stems — Music Stage</title>
+<link rel="stylesheet" href="assets/stems.css">
+</head>
+<body>
+<a class="skip-link" href="#workspace">Skip to separator</a>
+<header><p class="eyebrow">Music Stage tools</p><h1>Stem Separator</h1><p>Separate vocals, drums, bass, and other instruments locally with HTDemucs. Your selected file is not uploaded.</p></header>
+<main id="workspace">
+<section class="card" aria-labelledby="sourceTitle">
+  <div class="heading"><div><h2 id="sourceTitle">1. Choose audio</h2><span id="runtimeBadge" class="badge">Runtime checking…</span></div><a href="index.html">← Back to stage</a></div>
+  <label class="drop-zone">Audio file <input type="file" id="f" accept="audio/*"></label>
+  <div class="options">
+    <label>Maximum duration <select id="maxDuration"><option value="60">1 minute</option><option value="180" selected>3 minutes</option><option value="360">6 minutes</option></select></label>
+    <label>Execution <select id="provider"><option value="auto">Auto</option><option value="webgpu">WebGPU</option><option value="wasm">WebAssembly</option></select></label>
+  </div>
+  <p id="resource" class="hint">Choose a track to estimate decoded memory and storage.</p>
+</section>
+<section class="card" aria-labelledby="separateTitle">
+  <div class="heading"><h2 id="separateTitle">2. Separate</h2><span id="modeDetail" class="badge">single-thread fallback</span></div>
+  <div class="actions"><button id="go" class="primary" disabled>Separate track</button><button id="cancel" disabled>Cancel</button><button id="release">Release memory</button></div>
+  <progress id="bar" max="1" value="0" aria-label="Separation progress"></progress>
+  <p id="stat" role="status" aria-live="polite">Choose a track first. The model is about 172 MB and is cached by the browser.</p>
+  <p class="hint">Cancellation takes effect between model segments. WebAssembly uses one thread unless the server provides cross-origin isolation headers.</p>
+</section>
+<section class="card" aria-labelledby="resultsTitle">
+  <div class="heading"><h2 id="resultsTitle">3. Preview and save</h2><button id="stopAll" disabled>Stop previews</button></div>
+  <div id="stems" class="stem-list" aria-live="polite"><p class="empty">Separated parts will appear here.</p></div>
+  <div class="actions"><button id="save" class="primary" disabled>Save to stage</button><button id="clearSaved">Clear saved stems</button></div>
+  <p id="storage" class="hint">Checking available browser storage…</p>
+</section>
+</main>
+<footer>HTDemucs separation is experimental and lossy. Long tracks require substantial RAM. Use the safe local server for reliable module loading.</footer>
+<script src="assets/media-utils.js"></script>
+<script type="module" src="assets/stems.js"></script>
+</body>
+</html>

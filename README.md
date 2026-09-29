@@ -2,7 +2,15 @@
 
 [Open Music Stage](https://immortaljeetsingh.github.io/music-stage/)
 
-A browser-based listening room: arrange virtual speakers and furniture, move a listener, and hear spatialized music through stereo headphones. Built with Canvas 2D and Web Audio; no application backend or build step.
+A browser-based listening room: arrange virtual speakers and furniture, move a listener, and hear spatialized music through stereo headphones. Built with Canvas 2D and Web Audio; no application backend or production build step.
+
+## Player and project workflow
+
+The Stage now contains a complete Web Audio-backed player rather than a second, bypassing `<audio>` element. It shows ID3 or filename-derived title and artist, generated or embedded artwork, source and format details, elapsed/remaining time, seek, ±10-second skip, play/pause, stop, repeat, mute, master volume, live L/R meters, Media Session controls, and a compact mobile player while another tab is open. Local files remain local.
+
+Room and rig setups can be saved explicitly in the browser, exported/imported as versioned JSON, reset, undone, and redone. Two persistent A/B slots make room and rig comparisons repeatable while preserving playback position. Audio samples are deliberately excluded from project JSON. A one-time, dismissible quick tour explains the three-step workflow. **Simple mode** hides specialist controls; **Advanced mode** exposes the full room, rig, imaging, correction, and project interface.
+
+The code remains browser-native but is separated into cacheable classic-script modules under `assets/`: source/loading and state, DSP, stage rendering, player, projects, accessibility, and UI. The classic loading order intentionally preserves the global API used by the offline Web Audio regression suite.
 
 ## Quick start
 
@@ -30,7 +38,7 @@ The shell follows Apple's iOS 27 design language, built from the WWDC26 material
 
 - **L/R/M:** choose the recording's left channel, right channel, or both. M plays two virtual channels around the cabinet; it is not an automatic loudness matcher.
 - **Bands:** Full, Bass (300 Hz low-pass), Tweeter (2.5 kHz high-pass), Vocal (1.2 kHz band-pass), Bright (5 kHz high-pass). Subwoofers are low-passed at 120 Hz. These overlap; this is not a calibrated loudspeaker crossover.
-- **Width:** 1 preserves the channel feed, 0 adds mono crossfeed, and values above 1 add opposite-polarity crossfeed. Width changes can change loudness or cause cancellation.
+- **Width:** 1 preserves the channel feed, 0 adds mono crossfeed, and values above 1 add opposite-polarity crossfeed. Crossfeed is gain-bounded for more useful level comparisons, but correlated material can still cancel or change level.
 - **Balance / trims:** output adjustment, not automatic acoustic calibration. Start at Balance 0 and both trims 1.
 - **Test tone:** choose the same 80 Hz bass, 1 kHz mid, or 6 kHz treble tone and compare Test L with Test R. Quiet diagnostic tones bypass the room, EQ, and trims; they do not measure your hearing or headphones.
 - **Classic engine:** equal-power directional panning with manual distance attenuation.
@@ -60,7 +68,7 @@ AudioBuffer source -> band filter -> channel split / width
 
 Six mirrored image sources approximate first-order wall reflections. The late reverb uses a synthetic decaying-noise impulse. Softness and estimated furnishing area shorten/darken the tail. A segment/box intersection test detects blocked source-listener paths and applies a heuristic 1.8 kHz low-pass to direct sound, leaving the room send separate.
 
-The 3D-style view is an oblique projection drawn on a 2D canvas, not a scanned 3D room. It repaints in Light or Dark with the rest of the app. Speaker cabinets are drawn as their real driver layouts: two-way boxes (dome tweeter over a woofer, reflex port, badge), horn tweeters, and subwoofers (large driver, port slot, feet); the colored ring still identifies the type/band. The listener is drawn as a cartoon person whose green cone and nose point where they face. Cabinets are drawn about 1.3× true size so they stay legible in a 10 m room, and hit-testing shares those dimensions. Furniture picking follows the visible projected faces; dragging preserves the initial grab offset.
+The 3D-style view is an oblique projection drawn on a 2D canvas, not a scanned 3D room. A fixed 900 × 600 logical drawing surface is copied to a device-pixel-ratio-aware display buffer, keeping the editor sharp on HiDPI screens without changing hit-testing coordinates. It repaints in Light or Dark with the rest of the app. Speaker cabinets are drawn as their real driver layouts: two-way boxes (dome tweeter over a woofer, reflex port, badge), horn tweeters, and subwoofers (large driver, port slot, feet); the colored ring still identifies the type/band. The listener is drawn as a cartoon person whose green cone and nose point where they face. Cabinets are drawn about 1.3× true size so they stay legible in a 10 m room, and hit-testing shares those dimensions. Furniture picking follows the visible projected faces; dragging preserves the initial grab offset.
 
 ## Headphones and tracking
 
@@ -72,9 +80,9 @@ Head tracking uses the device running the page's orientation events, where suppo
 
 ## Stems and external services
 
-`stems.html` loads Demucs/ONNX runtime and a large external model, then attempts separation in the browser. It can require substantial RAM and time, especially on mobile; model downloads and browser compatibility can fail. GitHub Pages does not supply cross-origin isolation headers for multithreaded WASM. Saved stems use IndexedDB on the current browser/origin and can be assigned per speaker.
+`stems.html` loads the exactly pinned Demucs Web 1.0.2 and ONNX Runtime Web 1.20.0 browser modules; the ONNX import uses the package-exported `ort.bundle.min.mjs` path. The tool checks file duration, estimates working memory, reports the selected WebGPU/WASM provider and thread count, downloads the model with progress/size/timeout protection, supports segment-boundary cancellation, and checks storage quota before writing four stems. Results/model memory and saved stems can be cleared explicitly. The roughly 172 MB model is externally hosted and browser-cached. GitHub Pages does not supply cross-origin isolation headers, so WebAssembly safely falls back to one thread.
 
-Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. The Source panel has one-tap **Browse free music** chips (Indian classical, Hindustani, Carnatic, Bhangra, Punjabi, Ghazal, Qawwali, Bollywood, sitar & tabla, devotional, Indian film, jazz, electronic, world) that search Archive.org for you; searches return 12 items ranked by relevance to the query, sorted by popularity, and load the smallest playable file first. Bundled demos stay CC-BY only, so no commercial film soundtracks ship with the app. Check each catalog item's license before using it. Source file selection and room layout are not persisted across reloads; saved stems are the exception. Loading a new mix clears any previously loaded stems and speaker stem assignments, so boxes never silently keep playing old material. Seven credited CC-BY demo excerpts and their four synchronized FLAC stems are bundled, including two Indian-fusion selections chosen because no Bollywood film song could be redistributed: commercial film soundtracks stay copyrighted regardless of style. Choose a Demo in Source and press **Load demo**: only the mix is fetched for playback (~200 ms on a local server) and the four stems download in the background, so Map stems is ready when you want it without slowing the first listen. Map stems switches to the four-box separated rig; All parts / Vocals only / Drums only / Bass only / Other only then isolate the virtual sources (AI separation is lossy, which is why it is opt-in). Demos require HTTP(S), not file://. The Beat is percussion-led with quieter vocal samples; source separation does not isolate every individual instrument.
+Archive.org, Audius, and direct-link loading depend on third-party availability and CORS. Spotify/YouTube DRM or embedded-player audio is not supported. External catalogs/CDNs receive normal network requests. The Source panel has one-tap **Browse free music** chips (Indian classical, Hindustani, Carnatic, Bhangra, Punjabi, Ghazal, Qawwali, Bollywood, sitar & tabla, devotional, Indian film, jazz, electronic, world) that search Archive.org for you; searches return 12 items ranked by relevance to the query, sorted by popularity, and load the smallest playable file first. Bundled demos stay CC-BY only, so no commercial film soundtracks ship with the app. Check each catalog item's license before using it. Source file selection and room layout are not persisted across reloads; saved stems are the exception. Loading a new mix clears any previously loaded stems and speaker stem assignments, so boxes never silently keep playing old material. Seven credited CC-BY demo excerpts and their four synchronized FLAC stems are bundled, including two Indian-fusion selections chosen because no Bollywood film song could be redistributed: commercial film soundtracks stay copyrighted regardless of style. Choose a Demo in Source and press **Load demo**: only the original mix is fetched for playback. The four synchronized stems download with bounded concurrency only after **Map stems** is selected, avoiding unnecessary mobile bandwidth and peak decode memory. Map stems switches to the four-box separated rig; All parts / Vocals only / Drums only / Bass only / Other only then isolate the virtual sources (AI separation is lossy, which is why it is opt-in). Demos require HTTP(S), not file://. The Beat is percussion-led with quieter vocal samples; source separation does not isolate every individual instrument.
 
 ## Bundled demo credits
 
@@ -93,29 +101,37 @@ Licenses permit redistribution and derivative stems with attribution above; do n
 
 ## Run locally
 
-Open `index.html` directly for basic playback, or serve this folder using Python:
+Node.js 20+ is required for the safe local server and tests:
 
 ```sh
-python -m http.server 8000
+npm install
+npm start
 ```
 
-Open `http://localhost:8000`. No npm build is required. HTTPS or localhost may be required for device/browser features.
+Open `http://127.0.0.1:8000`. The server binds to loopback and serves only allowlisted app assets, documentation, the demo manifest, and demo FLAC files. It supports byte-range audio requests and sends a restrictive Content Security Policy. Requests for `.git`, test files, `package.json`, and loose personal audio return 404.
+
+Do **not** run a generic static server from the repository root: ignored MP3 files and Git metadata can otherwise become visible to other devices if the server binds to the network. `index.html` still supports basic `file://` playback, but demos, the external stem runtime, catalogs, and some browser APIs require HTTP(S). No production bundling step is required.
 
 ## Regression checks
 
-Tests require Node.js, Playwright resolvable by Node, and installed Chrome. Install Playwright in a separate tooling directory if desired, and expose it through `NODE_PATH`. Set `BROWSER_PATH` to another compatible Chromium executable if Chrome is not available.
+Dependencies are pinned in `package-lock.json`. The complete suite uses Playwright, the safe allowlisted server, dynamically allocated ports, generated in-memory WAV audio, and either installed Chrome or Playwright Chromium:
 
 ```sh
-node --check test.cjs
-node --check test-ui.cjs
-node test.cjs
-node test-ui.cjs
-node test-demos.cjs
-node test-stems.cjs
-node test-quality.cjs
+npm test
 ```
 
-The demo test also needs Python on PATH; it serves this folder temporarily on port 8931 and checks all seven bundles, synchronized decoded lengths, stereo output, attribution and solo controls.
+Focused commands are also available:
+
+```sh
+npm run test:server
+npm run test:audio
+npm run test:ui
+npm run test:player
+npm run test:demos
+npm run test:stems
+```
+
+CI installs Playwright Chromium and runs the same suite. Tests cover server isolation/security headers and ranges, centered audio symmetry, dry passband and limiter quality, responsive interaction and accessibility sizing, player metadata/transport/mini-player, project persistence, all seven demo bundles with on-demand stems, legacy IndexedDB stem compatibility, and the corrected stem runtime module path.
 
 `test.cjs` renders actual Web Audio through Chrome's OfflineAudioContext and checks centered bass/treble symmetry with reflections in both engines. `test-quality.cjs` renders the real playback graph and asserts a flat dry passband (±1.5 dB to 14 kHz), level linearity (limiter idle on normal program), no alias products when the output ceiling clips, and a program-level safety pass (no clipping, no DC offset, sane RMS) on both the default two-box rig and the nine-box precise rig. The default two-box rig renders about 10 dB below the source level — that is the designed distance attenuation, so use Master (up to 2.5×) or system volume. `test-ui.cjs` checks the iOS 27 shell: a clean first view (at most two category groups open), tab-bar reachability, opening categories to reach controls, 44pt hit targets, preset wiring, furniture dragging with mouse and real touch, the Liquid Glass slider, Light and Dark appearances, and overflow at 320/390/768/1280. These tests do not verify perceived realism on a physical headset. No lint/typecheck command is configured.
 

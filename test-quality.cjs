@@ -1,12 +1,12 @@
 const assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const path=require('node:path');
-const {chromium}=require('playwright');
+const {launchBrowser}=require('./test-helpers.cjs');
 // Fidelity of the real startPb graph, rendered offline:
 // 1) dry passband flat vs 1kHz, 2) level linearity (limiter must stay idle on normal program),
 // 3) no alias products when a hot signal hits the output ceiling (4x oversampled shaper).
 (async()=>{
-  const browser=await chromium.launch(process.env.BROWSER_PATH?{executablePath:process.env.BROWSER_PATH}:{channel:'chrome'});
+  const browser=await launchBrowser();
   try{
     const page=await browser.newPage();
     const errors=[];page.on('pageerror',e=>errors.push(e.message));

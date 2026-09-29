@@ -1,12 +1,12 @@
 const assert=require('node:assert/strict');
 const {pathToFileURL}=require('node:url');
 const path=require('node:path');
-const {chromium}=require('playwright');
+const {launchBrowser}=require('./test-helpers.cjs');
 // UI contract: iOS 27 shell (glass cards, tab bar with Prominent Tab on phones, 44pt targets),
 // panel reachability, preset wiring, furniture drag via mouse + real touch, no overflow 320-1280,
 // Light + Dark appearances, Liquid Glass transparency slider.
 (async()=>{
-  const browser=await chromium.launch(process.env.BROWSER_PATH?{executablePath:process.env.BROWSER_PATH}:{channel:'chrome'});
+  const browser=await launchBrowser();
   const hasTabs=page=>page.evaluate(()=>getComputedStyle(document.querySelector('.tabbar')).display!=='none');
   const go=async(page,t)=>{if(await hasTabs(page))await page.locator('.tab[data-tab='+t+']').click();};
   const open=async(page,sel)=>{const g=page.locator('details.group:has('+sel+')');if(await g.count()===0)return;if(!await g.evaluate(e=>e.open))await g.locator('summary').click();};

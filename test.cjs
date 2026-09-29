@@ -1,9 +1,9 @@
 const assert = require('node:assert/strict');
 const {pathToFileURL} = require('node:url');
 const path = require('node:path');
-const {chromium} = require('playwright');
+const {launchBrowser} = require('./test-helpers.cjs');
 (async()=>{
-  const browser=await chromium.launch(process.env.BROWSER_PATH?{executablePath:process.env.BROWSER_PATH}:{channel:'chrome'});
+  const browser=await launchBrowser();
   try{
     const page=await browser.newPage();
     const errors=[];page.on('pageerror',e=>errors.push(e.message));

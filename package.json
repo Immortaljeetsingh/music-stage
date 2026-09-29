@@ -1,0 +1,28 @@
+{
+  "name": "music-stage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A local-first spatial listening room built with Canvas and Web Audio.",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.cjs",
+    "test:syntax": "node --check assets/media-utils.js && node --check assets/stems.js && node --check assets/stage-app.js && node --check assets/audio-engine.js && node --check assets/stage-renderer.js && node --check assets/player.js && node --check assets/stage-ui.js && node --check assets/project.js && node --check assets/accessibility.js && node --check server.cjs && node --check test-helpers.cjs && node --check test-server.cjs && node --check test.cjs && node --check test-ui.cjs && node --check test-player.cjs && node --check test-demos.cjs && node --check test-stems.cjs && node --check test-quality.cjs",
+    "test:server": "node test-server.cjs",
+    "test:audio": "node test.cjs && node test-quality.cjs",
+    "test:ui": "node test-ui.cjs",
+    "test:player": "node test-player.cjs",
+    "test:demos": "node test-demos.cjs",
+    "test:stems": "node test-stems.cjs",
+    "test": "npm run test:syntax && npm run test:server && npm run test:audio && npm run test:ui && npm run test:player && npm run test:demos && npm run test:stems"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  },
+  "dependencies": {
+    "demucs-web": "1.0.2",
+    "onnxruntime-web": "1.20.0"
+  }
+}
