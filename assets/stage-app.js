@@ -94,10 +94,10 @@ $('openStems').onclick=()=>location.href='stems.html';
 $('mapStems').onclick=async()=>{ // separated rig is opt-in: Demucs output is lossy vs the original mix
   if(demoStemsBusy){say('fetching stems…');await demoStemsBusy;demoStemsBusy=null;}
   if(stemNames.length===4){
-    sps=[{x:3,y:1,h:1.6,v:1.1,ch:'M',band:'Full',stem:'vocals'},
-      {x:1,y:2,h:1.3,v:1.1,ch:'M',band:'Full',stem:'drums'},
-      {x:5,y:6.5,h:2.5,v:1.4,ch:'M',band:'Full',stem:'other'},
-      {x:3,y:6.5,h:0.3,v:1.4,sub:true,ch:'M',band:'Full',stem:'bass'}];
+    sps=[{x:5,y:1,h:1.6,v:1.1,ch:'M',band:'Full',stem:'vocals'},
+      {x:2,y:3,h:1.3,v:1.1,ch:'M',band:'Full',stem:'drums'},
+      {x:8,y:6.5,h:2.5,v:1.25,ch:'M',band:'Full',stem:'other'},
+      {x:5,y:6.5,h:0.3,v:1.25,sub:true,ch:'M',band:'Full',stem:'bass'}];
     selIdx=0;
     $('demoSolo').hidden=false;
     $('demoSolo').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(!b.dataset.solo)));
@@ -140,12 +140,13 @@ $('mvol').oninput=e=>{if(master)master.gain.value=+e.target.value;};
 function fmt(t){t=Math.max(0,Math.floor(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
 function dur(){if(buf)return buf.duration;const k=Object.keys(stemBufs)[0];return k?stemBufs[k].duration:0;}
 function curPos(){const D=dur();if(!D)return 0;if(!playing.length)return playOffset;return (playOffset+Math.max(0,AC.currentTime-playStart))%D;}
-const meterBuffers=[null,null];
+const meterBuffers=[null,null];let lastHeadroomText='';
 function updateOutputMeters(){try{
   const bars=[$('mL'),$('mR')],analysers=[anL,anR];
   for(let i=0;i<2;i++){let h=2,analyser=analysers[i];
     if(playing.length&&analyser?.getByteTimeDomainData){let data=meterBuffers[i];if(!data||data.length!==analyser.fftSize)data=meterBuffers[i]=new Uint8Array(analyser.fftSize);analyser.getByteTimeDomainData(data);let sum=0;for(let j=0;j<data.length;j+=2){const v=(data[j]-128)/128;sum+=v*v;}h=2+Math.min(20,Math.sqrt(sum/(data.length/2))*60);}
     if(bars[i])bars[i].style.height=h+'px';}
+  const status=$('headroomState');if(status){const reduction=playing.length&&Number.isFinite(comp?.reduction)?comp.reduction:0,attenuation=live.norm&&live.norm<0.995?-20*Math.log10(live.norm):0,text=reduction<-.1?`Limiter ${Math.abs(reduction).toFixed(1)} dB · protected`:attenuation>.1?`Auto headroom ${attenuation.toFixed(1)} dB`:'Clean path · auto headroom';if(text!==lastHeadroomText){lastHeadroomText=text;status.textContent=text;status.dataset.state=reduction<-.1?'limiting':attenuation>.1?'attenuating':'clean';}}
 }catch(_) {}}
 function updTime(){const D=dur();if(!D){$('time').textContent='0:00 / 0:00';updateOutputMeters();return;}const position=curPos();$('time').textContent=fmt(position)+' / '+fmt(D);if(playing.length)$('seek').value=Math.round(position/D*1000);updateOutputMeters();}
 function seekTo(t){const D=dur();if(!D)return;t=((t%D)+D)%D;
@@ -158,11 +159,20 @@ $('align').onchange=()=>syncAudioSafe();
 $('swap').onchange=()=>{SWAP=$('swap').checked;if(playing.length)seekTo(curPos());};
 $('trimL').oninput=e=>{TRIM.l=+e.target.value;if(trimL)trimL.gain.setTargetAtTime(TRIM.l,AC.currentTime,0.02);};
 $('trimR').oninput=e=>{TRIM.r=+e.target.value;if(trimR)trimR.gain.setTargetAtTime(TRIM.r,AC.currentTime,0.02);};
-$('hq').onchange=()=>{if(playing.length)seekTo(curPos());}; // imaging engine rebuild
+const PLAYBACK_MODES={
+ clarity:{walls:false,abs:0.85,verb:0,air:false,align:true,hq:false,label:'Clarity'},
+ room:{walls:true,abs:0.75,verb:0.02,air:false,align:true,hq:false,label:'Room'},
+ immersive:{walls:true,abs:0.55,verb:0.06,air:false,align:false,hq:true,label:'Immersive'}};
+function applyPlaybackMode(name,announce=true){const mode=PLAYBACK_MODES[name]||PLAYBACK_MODES.clarity;
+  $('renderMode').value=name in PLAYBACK_MODES?name:'clarity';$('walls').checked=mode.walls;$('wallAbs').value=mode.abs;$('roomAmt').value=mode.verb;$('air').checked=mode.air;$('align').checked=mode.align;$('hq').checked=mode.hq;$('width').value=1;$('preset').value=name==='clarity'?'Clarity':'';if(wet)wet.gain.value=mode.verb;if(playing.length)seekTo(curPos());else syncAudioSafe();if($('qualityState'))$('qualityState').textContent=mode.label;try{syncMetas();}catch(_){}if(announce)say(`${mode.label} playback: ${mode.walls?'restrained room cues':'direct stereo, room copies off'}, automatic headroom on.`);}
+$('renderMode').onchange=e=>applyPlaybackMode(e.target.value);
+$('qualityState').onclick=()=>{const order=['clarity','room','immersive'],next=order[(order.indexOf($('renderMode').value)+1)%order.length];applyPlaybackMode(next);};
+$('hq').onchange=()=>{const name=$('hq').checked?'immersive':($('renderMode').value==='clarity'?'clarity':'room');applyPlaybackMode(name);};
 $('walls').onchange=()=>{$('preset').value='';if(playing.length)seekTo(curPos());}; // taps rebuild
 $('wallAbs').oninput=()=>{$('preset').value='';syncAudioSafe();}; // tap gains follow live
 // one-tap room tunes: only reflections/absorption/reverb/softness/air — layout and speakers untouched
 const PRESETS={
+ Clarity:{walls:false,abs:0.85,verb:0,furn:'Empty',air:false},
  Studio:{walls:true,abs:0.85,verb:0,furn:'Empty',air:false},
  'Living Room':{walls:true,abs:0.5,verb:0.05,furn:'Furnished',air:false},
  'Concert Hall':{walls:true,abs:0.25,verb:0.18,furn:'Empty',air:true},
@@ -171,10 +181,10 @@ const PRESETS={
  Outdoor:{walls:false,abs:0.5,verb:0,furn:'Empty',air:true}};
 function applyPreset(name){const p=PRESETS[name];if(!p)return;
   $('walls').checked=p.walls;$('wallAbs').value=p.abs;$('roomAmt').value=p.verb;
-  $('furn').value=p.furn;$('air').checked=p.air;
+  $('furn').value=p.furn;$('air').checked=p.air;$('renderMode').value=name==='Clarity'?'clarity':'room';$('hq').checked=false;if($('qualityState'))$('qualityState').textContent=name==='Clarity'?'Clarity':'Room';
   if(wet)wet.gain.value=p.verb;
-  if(playing.length)seekTo(curPos());else{syncAudioSafe();draw();} // rebuild: late-tail impulse depends on softness
-  say(name+': reflections '+(p.walls?'on':'off')+', absorb '+p.abs+', verb '+p.verb+', '+p.furn.toLowerCase()+(p.air?', air dulls far':'')+'.');}
+  if(playing.length)seekTo(curPos());else{syncAudioSafe();draw();}
+  say(name+': '+(name==='Clarity'?'direct stereo, ':'spatial room, ')+'reflections '+(p.walls?'on':'off')+', absorb '+p.abs+', verb '+p.verb+', '+p.furn.toLowerCase()+(p.air?', air dulls far':'')+'.');}
 $('preset').onchange=e=>applyPreset(e.target.value);
 function beep(side){
   AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume();

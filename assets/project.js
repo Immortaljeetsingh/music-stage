@@ -1,6 +1,6 @@
 /* Versioned room/rig project persistence. Audio buffers never enter project files. */
 const PROJECT_SCHEMA=1,PROJECT_KEY='music-stage-project-v1';
-const PROJECT_CONTROL_IDS=['walls','wallAbs','roomAmt','furn','preset','air','hq','width','align','swap','bal','mvol','hpdev','trimL','trimR'];
+const PROJECT_CONTROL_IDS=['walls','wallAbs','roomAmt','furn','preset','air','renderMode','hq','width','align','swap','bal','mvol','hpdev','trimL','trimR'];
 let projectHistory=[],projectHistoryIndex=-1,historyMuted=false;
 const clonePlain=value=>JSON.parse(JSON.stringify(value));
 const finite=(value,fallback,min=-Infinity,max=Infinity)=>Number.isFinite(+value)?Math.max(min,Math.min(max,+value)):fallback;
@@ -39,7 +39,7 @@ function loadProjectSlot(slot){try{const raw=localStorage.getItem(PROJECT_SLOTS[
 for(const slot of ['A','B']){$('saveSlot'+slot).onclick=()=>saveProjectSlot(slot);$('loadSlot'+slot).onclick=()=>loadProjectSlot(slot);}refreshProjectSlots();
 $('exportProject').onclick=()=>{try{const blob=new Blob([JSON.stringify(captureProject(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`music-stage-${new Date().toISOString().slice(0,10)}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('projectStatus').textContent='Project JSON exported.';}catch(error){$('projectStatus').textContent=`Export failed: ${error.message||error}`;}};
 $('importProject').onchange=async event=>{const file=event.target.files?.[0];if(!file)return;try{if(file.size>1024*1024)throw new Error('Project file is larger than 1 MB.');applyProject(JSON.parse(await file.text()),{message:`Imported ${file.name}.`});$('projectMeta').textContent='imported';}catch(error){$('projectStatus').textContent=`Import failed: ${error.message||error}`;}finally{event.target.value='';}};
-$('resetProject').onclick=()=>applyProject({schema:PROJECT_SCHEMA,room:{w:10,l:10,h:10},listener:{x:5,y:5,yaw:0,pitch:0,off:0,poff:0,sYaw:0,sPitch:0},speakers:[{x:2,y:2,h:1.6,v:1,sub:false,ch:'L',band:'Full'},{x:8,y:2,h:1.6,v:1,sub:false,ch:'R',band:'Full'}],furniture:[],controls:{walls:true,wallAbs:'0.5',roomAmt:'0.05',furn:'Empty',preset:'',air:false,hq:false,width:'1',align:true,swap:false,bal:'0',mvol:'0.9',hpdev:'',trimL:'1',trimR:'1'}},{message:'Layout and sound controls reset. Loaded audio was kept.'});
+$('resetProject').onclick=()=>applyProject({schema:PROJECT_SCHEMA,room:{w:10,l:10,h:10},listener:{x:5,y:5,yaw:0,pitch:0,off:0,poff:0,sYaw:0,sPitch:0},speakers:[{x:2,y:2,h:1.6,v:1,sub:false,ch:'L',band:'Full'},{x:8,y:2,h:1.6,v:1,sub:false,ch:'R',band:'Full'}],furniture:[],controls:{walls:false,wallAbs:'0.85',roomAmt:'0',furn:'Empty',preset:'Clarity',air:false,renderMode:'clarity',hq:false,width:'1',align:true,swap:false,bal:'0',mvol:'0.9',hpdev:'',trimL:'1',trimR:'1'}},{message:'Layout and sound controls reset. Loaded audio was kept.'});
 let historyTimer=0;const queueHistory=()=>{clearTimeout(historyTimer);historyTimer=setTimeout(recordProjectSnapshot,80);};
 document.addEventListener('change',event=>{if(!event.target.closest('#panel-rig details:has(#saveProject)'))queueHistory();});
 for(const id of ['addSp','addTw','addSub','stage8','addBed','addSofa','addWardrobe'])$(id).addEventListener('click',queueHistory);

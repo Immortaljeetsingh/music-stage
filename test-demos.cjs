@@ -16,8 +16,8 @@ const {closeServer,launchBrowser,listen}=require('./test-helpers.cjs');
     for(const id of ['71178','71068','46603','46258','70823','59581','40166']){
       await go('source');await open('#loadDemo');await page.selectOption('#demo',id);await page.locator('#loadDemo').click();
       await page.waitForFunction(()=>!document.getElementById('loadDemo').disabled&&document.getElementById('playerState').dataset.state==='ready',null,{timeout:30000});
-      const mix=await page.evaluate(()=>({stems:stemNames.length,boxes:sps.length,precise:$('hq').checked,credit:$('demoCredit').innerText,solo:!$('demoSolo').hidden,map:getComputedStyle($('mapStems')).display,current:currentTrack.title,player:$('trackTitle').textContent}));
-      assert.deepEqual({stems:mix.stems,boxes:mix.boxes,precise:mix.precise,solo:mix.solo},{stems:0,boxes:2,precise:true,solo:false},'mix-first demo state '+id);
+      const mix=await page.evaluate(()=>({stems:stemNames.length,boxes:sps.length,precise:$('hq').checked,mode:$('renderMode').value,credit:$('demoCredit').innerText,solo:!$('demoSolo').hidden,map:getComputedStyle($('mapStems')).display,current:currentTrack.title,player:$('trackTitle').textContent}));
+      assert.deepEqual({stems:mix.stems,boxes:mix.boxes,precise:mix.precise,mode:mix.mode,solo:mix.solo},{stems:0,boxes:2,precise:false,mode:'clarity',solo:false},'clarity-first mix state '+id);
       assert(mix.credit.includes('CC BY')&&mix.map!=='none'&&mix.current===mix.player,'credited mix and player metadata '+id);
       await go('stage');await page.locator('#play').click();
       await page.waitForFunction(()=>{

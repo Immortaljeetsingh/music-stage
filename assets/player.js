@@ -68,8 +68,8 @@ $('loadUrl').onclick=()=>{const value=$('url').value.trim();if(!value){setLoadSt
 function resetDemoStage(){
   room={w:10,l:10,h:10};listener.x=5;listener.y=5;listener.yaw=0;listener.pitch=0;furniture.length=0;showFurniture();
   sps=[{x:2,y:2,h:1.6,v:1.1,ch:'L',band:'Full'},{x:8,y:2,h:1.6,v:1.1,ch:'R',band:'Full'}];
-  $('hq').checked=true;$('walls').checked=true;$('roomAmt').value=0.04;$('mvol').value=0.7;$('bal').value=0;TRIM={l:1,r:1};$('trimL').value=1;$('trimR').value=1;
-  $('rw').value=10;$('rl').value=10;$('rh').value=10;$('yaw').value=0;$('look').value=0;$('uni').checked=true;listener.useSensor=false;$('width').value=1;$('align').checked=false;$('air').checked=false;$('wallAbs').value=0.65;$('furn').value='Empty';SWAP=false;$('swap').checked=false;selIdx=0;showSel();draw();syncMetas?.();
+  $('renderMode').value='clarity';$('hq').checked=false;$('walls').checked=false;$('roomAmt').value=0;$('mvol').value=0.9;$('bal').value=0;TRIM={l:1,r:1};$('trimL').value=1;$('trimR').value=1;
+  $('rw').value=10;$('rl').value=10;$('rh').value=10;$('yaw').value=0;$('look').value=0;$('uni').checked=true;listener.useSensor=false;$('width').value=1;$('align').checked=true;$('air').checked=false;$('wallAbs').value=0.85;$('furn').value='Empty';$('preset').value='Clarity';SWAP=false;$('swap').checked=false;if($('qualityState'))$('qualityState').textContent='Clarity';selIdx=0;showSel();draw();syncMetas?.();
 }
 $('loadDemo').onclick=async()=>{
   const d=demos.find(item=>item.id===$('demo').value);if(!d){setLoadState('error','Choose a demo track first.');return;}
@@ -96,7 +96,7 @@ async function ensureDemoStems(){
 }
 $('mapStems').onclick=async()=>{
   $('mapStems').disabled=true;try{if(pendingDemo&&!await ensureDemoStems())return;
-    if(stemNames.length===4){sps=[{x:3,y:1,h:1.6,v:1.1,ch:'M',band:'Full',stem:'vocals'},{x:1,y:2,h:1.3,v:1.1,ch:'M',band:'Full',stem:'drums'},{x:5,y:6.5,h:2.5,v:1.4,ch:'M',band:'Full',stem:'other'},{x:3,y:6.5,h:0.3,v:1.4,sub:true,ch:'M',band:'Full',stem:'bass'}];selIdx=0;$('demoSolo').hidden=false;$('demoSolo').querySelectorAll('button').forEach(button=>button.setAttribute('aria-pressed',String(!button.dataset.solo)));say('Stem rig ready: vocals front, drums left, instruments rear-high, bass sub.');}
+    if(stemNames.length===4){sps=[{x:5,y:1,h:1.6,v:1.1,ch:'M',band:'Full',stem:'vocals'},{x:2,y:3,h:1.3,v:1.1,ch:'M',band:'Full',stem:'drums'},{x:8,y:6.5,h:2.5,v:1.25,ch:'M',band:'Full',stem:'other'},{x:5,y:6.5,h:0.3,v:1.25,sub:true,ch:'M',band:'Full',stem:'bass'}];selIdx=0;$('demoSolo').hidden=false;$('demoSolo').querySelectorAll('button').forEach(button=>button.setAttribute('aria-pressed',String(!button.dataset.solo)));say('Stem rig ready: vocals front, drums left, instruments rear-high, bass sub.');}
     else{say('No complete four-part stem set is available.');return;}if(playing.length)seekTo(curPos());showSel();draw();syncMetas?.();
   }finally{$('mapStems').disabled=false;}
 };

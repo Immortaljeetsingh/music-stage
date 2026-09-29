@@ -9,7 +9,7 @@ function syncMetas(){
   set('furnMeta',furniture.length?furniture.map(o=>o.type).join(', '):'none');
   set('rigMeta',sps.length+' box'+(sps.length===1?'':'es'));
   set('balMeta',Math.abs(+$('bal').value)<0.01?'centered':(+$('bal').value<0?'left '+(Math.round(-$('bal').value*100))+'%':'right '+Math.round(+$('bal').value*100)+'%'));
-  set('engMeta',$('hq').checked?'precise':'classic');
+  const playbackLabel={clarity:'Clarity',room:'Room',immersive:'Immersive'}[$('renderMode').value]||'Clarity';set('engMeta',playbackLabel);set('qualityState',playbackLabel);
   set('eqMeta',$('hpdev').value?($('hpdev').value==='pro3'?'Pro 3 · bypass':$('hpdev').value):'bypass');
   set('headMeta',listener.useSensor?'sensor on':'manual');
   set('appMeta',appearance||'System');}

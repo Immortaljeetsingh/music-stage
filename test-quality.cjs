@@ -4,7 +4,7 @@ const path=require('node:path');
 const {launchBrowser}=require('./test-helpers.cjs');
 // Fidelity of the real startPb graph, rendered offline:
 // 1) dry passband flat vs 1kHz, 2) level linearity (limiter must stay idle on normal program),
-// 3) no alias products when a hot signal hits the output ceiling (4x oversampled shaper).
+// 3) negligible alias products under extreme gain (post-EQ limiter + linear -1 dBFS emergency ceiling).
 (async()=>{
   const browser=await launchBrowser();
   try{
@@ -20,7 +20,7 @@ const {launchBrowser}=require('./test-helpers.cjs');
         sps=[{x,y,h:1.6,v:1,ch:'M',band:'Full'}];
         room={w:6,l:8,h:3};listener.x=3;listener.y=4;listener.yaw=0;listener.pitch=0;
         furniture.length=0;TRIM={l:1,r:1};SWAP=false;
-        $('hpdev').value='';$('hq').checked=false;$('width').value=1;$('walls').checked=false;
+        $('hpdev').value='';$('renderMode').value='clarity';$('hq').checked=false;$('width').value=1;$('walls').checked=false;
         $('roomAmt').value=0;$('mvol').value=String(mvol);$('air').checked=false;$('align').checked=true;
       };
       const run=async()=>{
@@ -40,7 +40,7 @@ const {launchBrowser}=require('./test-helpers.cjs');
       setup({amp:0.9,freq:1000,mvol:0.9});
       const hi=rms((await run()).getChannelData(0),36000,48000);
       const stepDb=20*Math.log10(hi/lo);
-      setup({amp:0.7,freq:15000,mvol:2.5,x:3,y:3.6}); // close + hot: forces ceiling clip
+      setup({amp:0.7,freq:15000,mvol:2.5,x:3,y:3.6}); // extreme gain exercises limiter/ceiling without adding audible-band aliases
       const d=(await run()).getChannelData(0);
       const aliasDb=20*Math.log10(gz(d,3000)/gz(d,15000)); // 45k 3rd harmonic folds to 3k at 1x
       // 4) program-level safety on the default 10x10x10 stage: no clipping, no DC, sane level,
@@ -58,16 +58,16 @@ const {launchBrowser}=require('./test-helpers.cjs');
         for(const ch of[0,1]){const a=out.getChannelData(ch);
           for(let i=0;i<a.length;i++){const v=a[i];if(Math.abs(v)>peak)peak=Math.abs(v);sum+=v*v;dc+=v;n++;}}
         return {peak,rms:Math.sqrt(sum/n),dc:Math.abs(dc/n)};};
-      // default two-box rig, app defaults (10x10x10, walls on, 5% verb, master 0.9)
+      // default two-box Clarity rig (direct stereo, no room copies, master 0.9)
       AC=await program(2);
       room={w:10,l:10,h:10};listener.x=5;listener.y=5;listener.yaw=0;listener.pitch=0;
       sps=[{x:2,y:2,h:1.6,v:1,ch:'L',band:'Full'},{x:8,y:2,h:1.6,v:1,ch:'R',band:'Full'}];
-      furniture.length=0;$('hq').checked=false;$('mvol').value=0.9;$('walls').checked=true;$('roomAmt').value=0.05;
+      furniture.length=0;$('renderMode').value='clarity';$('hq').checked=false;$('mvol').value=0.9;$('walls').checked=false;$('wallAbs').value=.85;$('roomAmt').value=0;
       startPb(0);
       const two=await measure(await AC.startRendering());
       // 9-box rig (4 fulls + 4 tweeters + sub), precise engine
       AC=await program(2);
-      $('hq').checked=true;
+      $('renderMode').value='immersive';$('hq').checked=true;$('walls').checked=true;$('wallAbs').value=.55;$('roomAmt').value=.06;
       $('stage8').onclick.call($('stage8'));
       startPb(0);
       const nine=await measure(await AC.startRendering());
