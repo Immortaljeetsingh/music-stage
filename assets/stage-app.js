@@ -136,7 +136,7 @@ $('addBed').onclick=()=>addFurniture('Bed');$('addSofa').onclick=()=>addFurnitur
 $('hpdev').onchange=()=>{if(playing.length)seekTo(curPos());
   if($('hpdev').value==='pro3')say('AirPods Pro 3: no numerical correction verified here; EQ bypassed. Pro 2 correction is not interchangeable.');};
 function syncAudioSafe(){try{updateLis();}catch(e){}}
-$('mvol').oninput=e=>{if(master)master.gain.value=+e.target.value;};
+$('mvol').oninput=e=>{if(master){updateLis();master.gain.setTargetAtTime(+e.target.value,AC.currentTime,0.02);}};
 function fmt(t){t=Math.max(0,Math.floor(t));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
 function dur(){if(buf)return buf.duration;const k=Object.keys(stemBufs)[0];return k?stemBufs[k].duration:0;}
 function curPos(){const D=dur();if(!D)return 0;if(!playing.length)return playOffset;return (playOffset+Math.max(0,AC.currentTime-playStart))%D;}
@@ -157,8 +157,8 @@ $('bal').oninput=e=>{if(balN)balN.pan.value=+e.target.value;};
 $('width').oninput=()=>syncAudioSafe();
 $('align').onchange=()=>syncAudioSafe();
 $('swap').onchange=()=>{SWAP=$('swap').checked;if(playing.length)seekTo(curPos());};
-$('trimL').oninput=e=>{TRIM.l=+e.target.value;if(trimL)trimL.gain.setTargetAtTime(TRIM.l,AC.currentTime,0.02);};
-$('trimR').oninput=e=>{TRIM.r=+e.target.value;if(trimR)trimR.gain.setTargetAtTime(TRIM.r,AC.currentTime,0.02);};
+$('trimL').oninput=e=>{TRIM.l=+e.target.value;if(trimL)trimL.gain.setTargetAtTime(TRIM.l,AC.currentTime,0.02);if(live.length)updateLis();};
+$('trimR').oninput=e=>{TRIM.r=+e.target.value;if(trimR)trimR.gain.setTargetAtTime(TRIM.r,AC.currentTime,0.02);if(live.length)updateLis();};
 const PLAYBACK_MODES={
  clarity:{walls:false,abs:0.85,verb:0,air:false,align:true,hq:false,label:'Clarity'},
  room:{walls:true,abs:0.75,verb:0.02,air:false,align:true,hq:false,label:'Room'},

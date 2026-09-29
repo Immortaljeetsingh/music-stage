@@ -78,7 +78,7 @@ function rigNormalization(mode=currentRenderMode()){
     if(mode==='clarity'){if(channel==='L')left+=weight;else if(channel==='R')right+=weight;else{left+=weight;right+=weight;}}
     else total+=weight*(channel==='M'?2:1);
   }
-  const load=mode==='clarity'?Math.max(left,right):total,target=mode==='clarity'?0.88:(mode==='room'?0.68:0.62);return load>target?target/load:1;
+  const load=mode==='clarity'?Math.max(left,right):total,downstream=Math.max(1,(Number($('mvol')?.value)||1)*Math.max(1,TRIM?.l||1,TRIM?.r||1)*1.1),baseTarget=mode==='clarity'?0.82:(mode==='room'?0.58:0.52),target=baseTarget/downstream;return load>target?target/load:1;
 }
 function clarityPan(speaker,targetEar){if(targetEar==='M')return 0;if(!speaker.stem)return targetEar==='L'?-1:1;const base=Math.max(-0.82,Math.min(0.82,(speaker.x-listener.x)/Math.max(1,room.w*0.38))),spread=targetEar==='L'?-0.16:0.16;return Math.max(-1,Math.min(1,base+spread));}
 function stopPb(){const pos=curPosSafe();playing.forEach(s=>{try{s.stop();s.disconnect();}catch(e){}});playing=[];live=[];anL=anR=null;
@@ -86,8 +86,9 @@ function stopPb(){const pos=curPosSafe();playing.forEach(s=>{try{s.stop();s.disc
 function curPosSafe(){try{return curPos();}catch(e){return playOffset;}}
 function startPb(offset){
   master=AC.createGain();master.gain.value=+$('mvol').value;
-  comp=AC.createDynamicsCompressor(); // post-EQ emergency limiter: normal playback stays below threshold through automatic headroom
-  comp.threshold.value=-1.5;comp.knee.value=0;comp.ratio.value=20;comp.attack.value=0.003;comp.release.value=0.12;
+  const clarityOutput=currentRenderMode()==='clarity';
+  comp=clarityOutput?null:AC.createDynamicsCompressor(); // Clarity remains fully linear; spatial modes retain emergency dynamics protection
+  if(comp){comp.threshold.value=-1.5;comp.knee.value=0;comp.ratio.value=20;comp.attack.value=0.003;comp.release.value=0.12;}
   balN=AC.createStereoPanner();balN.pan.value=+$('bal').value;
   // per-ear trim: split → trimL/trimR → merge; the linked limiter follows trims and optional EQ
   const tsp=AC.createChannelSplitter(2),tmg=AC.createChannelMerger(2);
@@ -99,7 +100,7 @@ function startPb(offset){
   const prof=HP_PROFILES[$('hpdev').value]; // pro3 has no verified profile: falls through to bypass
   if(prof){const pre=AC.createGain();pre.gain.value=Math.pow(10,prof.pre/20);output.connect(pre);output=pre;hpNodes.push(pre);
     prof.f.forEach(([fc,ty,g2,q])=>{const bq=AC.createBiquadFilter();bq.type=ty;bq.frequency.value=Math.min(fc,AC.sampleRate*0.49);bq.Q.value=q;bq.gain.value=g2;output.connect(bq);output=bq;hpNodes.push(bq);});}
-  output.connect(comp);output=comp; // catch headphone-EQ and trim boosts, not only the room sum
+  if(comp){output.connect(comp);output=comp;} // only opt-in spatial modes use emergency dynamics; Clarity stays sample-linear
   const ceiling=AC.createWaveShaper(),curve=new Float32Array(4097);
   for(let i=0;i<curve.length;i++){const v=i*2/(curve.length-1)-1;curve[i]=v*OUTPUT_CEILING;}
   ceiling.curve=curve;ceiling.oversample='none'; // exactly linear below 0 dBFS; compressor prevents normal signals reaching the emergency clamp

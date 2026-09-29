@@ -53,12 +53,12 @@ The shell follows Apple's iOS 27 design language, built from the WWDC26 material
 The changes are based on the following DSP principles:
 
 - The [Web Audio specification](https://webaudio.github.io/web-audio-api/#BiquadFilterNode) defines an all-pass biquad as magnitude-preserving but phase-changing, so it is no longer used as the Full-band bypass. The [Audio EQ Cookbook](https://webaudio.github.io/Audio-EQ-Cookbook/audio-eq-cookbook.html) shows why a 0 dB peaking EQ reduces to a unity transfer path.
-- A [WaveShaperNode is a nonlinear distortion processor](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createWaveShaper), so normal audio now sees a linear transfer curve. A post-EQ [DynamicsCompressorNode](https://developer.mozilla.org/en-US/docs/Web/API/DynamicsCompressorNode) is reserved for emergencies after trims and correction filters.
+- A [WaveShaperNode is a nonlinear distortion processor](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createWaveShaper), so normal audio now sees a linear transfer curve. Clarity uses deterministic gain headroom and bypasses dynamics processing entirely; Room and Immersive retain a post-EQ [DynamicsCompressorNode](https://developer.mozilla.org/en-US/docs/Web/API/DynamicsCompressorNode) only as emergency protection.
 - Multiple delayed copies produce comb-filter-shaped linear distortion; this is documented in [AES research on audible comb filtering](https://www2.ak.tu-berlin.de/~akgroup/ak_pub/2007/Brunner%20Maempel%20Weinzierl%202007_On%20the%20audibility%20of%20comb%20filter%20distortions%20AES.pdf). Clarity therefore disables reflections, while Room and Immersive use reduced mode-dependent reflection gains.
 - Room distance still depends on direct versus reverberant energy and interaural coherence, as summarized by the [Acoustical Society of America](https://acoustics.org/pressroom/httpdocs/160th/lavandier.html); those cues remain available in the spatial modes rather than contaminating the clean default.
 - The final emergency sample ceiling is −1 dBFS, with conservative coherent-sum headroom motivated by true-peak practice in [ITU-R BS.1770-5](https://www.itu.int/dms_pubrec/itu-r/rec/bs/R-REC-BS.1770-5-202311-I!!PDF-E.pdf). It is a sample ceiling, not a certified BS.1770 true-peak meter.
 
-Measured results for the real graph: normal-path THD is **−135 dB**, synthetic L→R crosstalk in Clarity is below **−276 dB**, and an extreme 4× speaker / 2.5× master test remains at the −1 dBFS ceiling with only **0.0052%** emergency-clamp samples. Across all nine local MP3s, Clarity produced zero ceiling plateaus and kept correlation close to the source; representative stereo correlation improved from source→old output **0.34→0.86** to source→Clarity **0.34→0.35**, and **0.46→0.86** to **0.46→0.45**. Run `npm run analyze:local` to repeat this program-material check without publishing local audio.
+Measured results for the real graph: normal-path THD is **−131 dB**, synthetic L→R crosstalk in Clarity is below **−275 dB**, and an extreme 4× speaker / 2.5× master test remains at **0.664 peak** with **zero emergency-clamp samples** because master and trim gain are included in automatic headroom. Across all nine local MP3s, Clarity produced zero ceiling plateaus and kept correlation close to the source; representative stereo correlation improved from source→old output **0.34→0.86** to source→Clarity **0.34→0.34**, and **0.46→0.86** to **0.46→0.46**. Run `npm run analyze:local` to repeat this program-material check without publishing local audio.
 
 Content from linked technical references was paraphrased for compliance with licensing restrictions.
 
@@ -80,7 +80,7 @@ AudioBuffer source -> band filter -> channel split / width
     -> obstruction low-pass -> distance gain -> delay -> spatializer
     -> first-order wall reflections and synthetic late reverb
  -> master -> output pan -> per-ear trims -> optional headphone EQ with preamp
- -> linked emergency limiter -> linear −1 dBFS sample ceiling -> stereo output/meters
+ -> optional spatial-mode emergency limiter -> linear −1 dBFS sample ceiling -> stereo output/meters
 ```
 
 Six mirrored image sources approximate first-order wall reflections. The late reverb uses a synthetic decaying-noise impulse. Softness and estimated furnishing area shorten/darken the tail. A segment/box intersection test detects blocked source-listener paths and applies a heuristic 1.8 kHz low-pass to direct sound, leaving the room send separate.
@@ -164,6 +164,6 @@ The app code is MIT licensed (see LICENSE). Bundled demo audio stays under its C
 
 Loose audio drops (`*.mp3` etc.) are git-ignored by default so personal/copyrighted files in this folder can never be committed by accident; only `demos/` is published.
 
-This is an experimental simulation, **not exact acoustic replication**: no measured room response, room-mode solver, wave diffraction, personal HRTF, or calibrated loudspeaker directivity. Hard furnishings are not fully simulated as reflecting geometry. Automatic coherent-sum headroom and the post-EQ emergency limiter keep normal playback away from the linear −1 dBFS sample ceiling; extreme gain can still cause audible limiter action. This is not a certified true-peak implementation or hearing protection.
+This is an experimental simulation, **not exact acoustic replication**: no measured room response, room-mode solver, wave diffraction, personal HRTF, or calibrated loudspeaker directivity. Hard furnishings are not fully simulated as reflecting geometry. Clarity folds master and trim gain into coherent-sum headroom and bypasses dynamics processing; optional spatial modes retain a post-EQ emergency limiter. The linear −1 dBFS sample ceiling is not a certified true-peak implementation or hearing protection.
 
 References: [AutoEq](https://github.com/jaakkopasanen/AutoEq), [ODEON room acoustics](https://odeon.dk/learn/articles/room-acoustics/), [Windows Bluetooth audio](https://learn.microsoft.com/en-us/windows-hardware/drivers/bluetooth/bluetooth-classic-audio).
